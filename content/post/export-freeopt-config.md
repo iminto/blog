@@ -1,6 +1,6 @@
 ---
 title: 导出freeOTP中的配置
-date: 2018/05/14 22:06:05
+date: 2018-05-14 22:06:05
 ---
 之前公司的一个网站使用了OTP来做二次验证，然后我就在手机上安装了freeotp这款软件来管理OTP密码，等到换手机了，才发现没法导出原手机的配置，这就尴尬了。FreeOTP is sponsored and officially published by Red Hat，也算是大家闺秀出品的软件，居然不支持这么重要的功能。
 

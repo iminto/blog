@@ -1,6 +1,6 @@
 ---
 title: TOTP算法Java版本
-date: 2018/01/08 20:21:52
+date: 2018-01-08 20:21:52
 tags: [Java]
 ---
 #### TOTP 概念

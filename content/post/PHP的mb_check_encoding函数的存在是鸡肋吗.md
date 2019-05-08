@@ -1,6 +1,6 @@
 ---
 title: PHP的mb_check_encoding函数的存在是鸡肋吗
-date: 2018/01/12 21:24:23
+date: 2018-01-12 21:24:23
 tags: [PHP]
 ---
 
