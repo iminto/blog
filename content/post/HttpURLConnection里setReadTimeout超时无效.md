@@ -1,0 +1,164 @@
+---
+title: "HttpURLConnection里setReadTimeout超时无效"
+date: 2020-02-18T21:09:34+08:00
+archives: "2020"
+tags: [Java]
+author: baicai
+---
+今天群里有位360的安全大佬，发了个链接[http://93.175.29.89:8008/](http://93.175.29.89:8008/)，说爬这个网址的时候，IO会一直卡在那，一直没有返回响应。
+那个网址是他构造的一个特殊请求，输出一个视频流，但是服务器端不返回Content-Length，也不输出真实数据，就是输出不到1024字节的流后就一直停在那也不close，浏览器打开的效果就是看到了视频的前几帧，然后一直卡在哪转圈。
+
+这么说来，感觉不是个大问题，设置下ReadTimeout不就好了么，大佬说他也设置了，但是无效，他使用的python代码实现，刚开始我觉得是他代码的问题，或者那个API库实现的问题，就用Java也实现了一把
+```
+package sms.bai.util;
+import com.squareup.okhttp.Headers;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+import java.io.IOException;
+import java.util.concurrent.*;
+
+public class Req {
+
+    public static void reqUrl() throws IOException {
+        OkHttpClient client = new OkHttpClient();
+        client.setConnectTimeout(5,TimeUnit.SECONDS);
+        client.setReadTimeout(5,TimeUnit.SECONDS);
+
+        Request request = new Request.Builder()
+                .url("http://93.175.29.89:8008/")
+                .build();
+
+        Response response = client.newCall(request).execute();
+        if (!response.isSuccessful()) {
+            throw new IOException("服务器端错误: " + response);
+        }
+
+        Headers responseHeaders = response.headers();
+        for (int i = 0; i < responseHeaders.size(); i++) {
+            System.out.println(responseHeaders.name(i) + ": " + responseHeaders.value(i));
+        }
+        System.out.println(response.body().string());
+    }
+
+    public static void main(String[] args) throws IOException {
+        reqUrl();
+    }
+}
+```
+果然如其所言，无论设置ConnectTimeout还是ReadTimeout都是无效的，代码一直停留在输出那里，不输出任何body（浏览器里还能勉强看到画面），程序也不stop
+```
+Content-Type: multipart/x-mixed-replace;boundary=---nessy2jpegboundary
+OkHttp-Sent-Millis: 1582028133591
+OkHttp-Received-Millis: 1582028133875
+
+```
+
+这里用的是OkHttp库 ,换其它库或者用Java自带的HttpUrlConnection理论上效果也是一样的。
+
+用ffmpeg来看看这个请求
+
+```
+[kk@kk ~]$ ffmpeg -i http://93.175.29.89:8008/ -f mp4 out.mp4
+ffmpeg version n4.2.2 Copyright (c) 2000-2019 the FFmpeg developers
+  built with gcc 9.2.0 (GCC)
+  libavutil      56. 31.100 / 56. 31.100
+  libavcodec     58. 54.100 / 58. 54.100
+  libavformat    58. 29.100 / 58. 29.100
+  libavdevice    58.  8.100 / 58.  8.100
+  libavfilter     7. 57.100 /  7. 57.100
+  libswscale      5.  5.100 /  5.  5.100
+  libswresample   3.  5.100 /  3.  5.100
+  libpostproc    55.  5.100 / 55.  5.100
+Input #0, mpjpeg, from 'http://93.175.29.89:8008/':
+  Duration: N/A, bitrate: N/A
+    Stream #0:0: Video: mjpeg (Baseline), yuvj420p(pc, bt470bg/unknown/unknown), 640x480 [SAR 1:1 DAR 4:3], 25 tbr, 25 tbn, 25 tbc
+Stream mapping:
+  Stream #0:0 -> #0:0 (mjpeg (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[libx264 @ 0x562ad6812cc0] using SAR=1/1
+[libx264 @ 0x562ad6812cc0] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+[libx264 @ 0x562ad6812cc0] profile High, level 3.0, 4:2:0, 8-bit
+[libx264 @ 0x562ad6812cc0] 264 - core 159 r2991 1771b55 - H.264/MPEG-4 AVC codec - Copyleft 2003-2019 - http://www.videolan.org/x264.html - options: cabac=1 ref=3 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=7 psy=1 psy_rd=1.00:0.00 mixed_ref=1 me_range=16 chroma_me=1 trellis=1 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=-2 threads=12 lookahead_threads=2 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=2 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=40 rc=crf mbtree=1 crf=23.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'out.mp4':
+  Metadata:
+    encoder         : Lavf58.29.100
+    Stream #0:0: Video: h264 (libx264) (avc1 / 0x31637661), yuvj420p(pc), 640x480 [SAR 1:1 DAR 4:3], q=-1--1, 25 fps, 12800 tbn, 25 tbc
+    Metadata:
+      encoder         : Lavc58.54.100 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: -1
+frame=   83 fps=1.1 q=-1.0 Lsize=     336kB time=00:00:03.20 bitrate= 859.8kbits/s speed=0.0436x     
+```
+
+ffmpeg 能识别出是一个视频流，但是会一直卡在frame=xx这里，一直读取帧而不停止。强行终止后能输出一个时长有几秒的视频
+
+看来依靠HttpUrlConnection中的SocketTimeoutException是无解了，只能在外面套一层了。main方法改成如下
+
+```
+ public static void main(String[] args) throws Exception {
+        final ExecutorService exec = Executors.newFixedThreadPool(1);
+        Callable<String> call = new Callable<String>() {
+            public String call() throws Exception {
+                //开始执行耗时操作
+               reqUrl();
+                return "线程执行完成.";
+            }
+        };
+        Future<String> future = null;
+        try {
+            future = exec.submit(call);
+            String obj = future.get(1000 * 10, TimeUnit.MILLISECONDS); //任务处理超时时间设为 10 秒
+            System.out.println("任务成功返回:" + obj);
+        } catch (TimeoutException ex) {
+            System.out.println("处理超时啦....");
+            ex.printStackTrace();
+            future.cancel(true);
+        } catch (Exception e) {
+            System.out.println("处理失败.");
+            e.printStackTrace();
+        }finally {
+            // 关闭线程池
+            System.out.println("关闭线程池");
+            exec.shutdown();
+        }
+    }
+```
+ 这下能得到期望的结果了
+ ```
+Content-Type: multipart/x-mixed-replace;boundary=---nessy2jpegboundary
+OkHttp-Sent-Millis: 1582028854911
+OkHttp-Received-Millis: 1582028855178
+处理超时啦....
+java.util.concurrent.TimeoutException
+	at java.util.concurrent.FutureTask.get(FutureTask.java:205)
+	at sms.bai.util.Req.main(Req.java:47)
+关闭线程池
+
+Process finished with exit code 0
+ ```
+ 那这个HttpUrlConnection里的超时到底是啥意思呢？为什么无效呢？看一下文档。
+ ConnectTimeout , java 是这样解释的：
+
+> Sets a specified timeout value, in milliseconds, to be used when opening a communications link to the resource referenced by this URLConnection. If the timeout expires before the connection can be established, a java.net.SocketTimeoutException is raised. A timeout of zero is interpreted as an infinite timeout. 
+>
+> Some non-standard implmentation of this method may ignore the specified timeout. To see the connect timeout set, please call getConnectTimeout().
+>  
+
+意思是用来建立连接的时间。如果到了指定的时间，还没建立连接，则报异常。 这个比较好理解。
+
+ReadTimeout , Java 是这样解释的：
+
+>  Sets the read timeout to a specified timeout, in milliseconds. A non-zero value specifies the timeout when reading from Input stream when a connection is established to a resource. If the timeout expires before there is data available for read, a java.net.SocketTimeoutException is raised. A timeout of zero is interpreted as an infinite timeout. 
+>
+> Some non-standard implementation of this method ignores the specified timeout. To see the read timeout set, please call getReadTimeout().
+
+ 意思是已经建立连接，并开始读取服务端资源。如果到了指定的时间，没有可能的数据被客户端读取，则报异常。
+
+也就是说setReadTimeout not mean read complete, it mean when wait for 10s, when there're no more data read in, will throw a timeoutexception。
+
+所以针对这种特殊的服务器构造的异常流，是没法用SocketTimeoutException来解决超时的，只能在外面再设置一层，通过线程的超时来控制。
+
+另外提一句，python是通过设置gevent超时来解决的，原理是一样的。
+
+tips：360大佬认为，这种特殊URL，不失为一种给爬虫挖坑的做法。
