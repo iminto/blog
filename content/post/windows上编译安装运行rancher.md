@@ -5,7 +5,9 @@ archives: "2020"
 tags: [k8s]
 author: waitfox@qq.com
 ---
-windows上编译安装运行rancher
+rancher 是一个为DevOps团队提供的完整的Kubernetes与容器管理解决方案。rancher最大的优点就是安装部署方便，极大地简化了K8S的安装配置。在官网上，推荐的是使用docker方式安装rancher，这种方式隐藏了大量的细节。在网上搜了下现有的资料，几乎都是照抄官方文档，更没有在windows上安装rancher的先例。
+
+rancher是用golang写的，跨平台问题不大，但也需要一些修改。正好最近要对rancher做二次开发，于是记录下了在windows上编译安装rancher的步骤。
 
 ### 1.修改源码
 
@@ -32,7 +34,6 @@ func run(cfg app.Config) error {
    ctx := signals.SetupSignalHandler(context.Background())
 ```
 
-
 然后屏蔽以下几个文件中相关syscall的处理：（这几处修改可能会导致K8S相关的功能带来影响，但影响未知.建议使用条件编译方式）
 
 pkg/controllers/user/helm/common/common.go
@@ -55,7 +56,6 @@ func JailCommand(cmd *exec.Cmd, jailPath string) (*exec.Cmd, error) {
    }
 }
 ```
-
 
 pkg/controllers/management/node/utils.go 修改同理
 
@@ -86,7 +86,6 @@ func buildCommand(nodeDir string, node *v3.Node, cmdArgs []string) (*exec.Cmd, e
    return command, nil
 }
 ```
-
 
 屏蔽jailer的处理
 
@@ -145,7 +144,6 @@ curl -sfL https://get.k3s.io | sh -
 #Check for Ready node, takes maybe 30 seconds
 k3s kubectl get node
 ```
-
 新增一个用户试一下，可以新增成功
 
 
