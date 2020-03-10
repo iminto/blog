@@ -1,7 +1,14 @@
 ---
 title: "About"
 date: 2019-07-07T15:17:21+08:00
-draft: true
+menu: "main"
+weight: 60
 ---
 
-hey!
+目前可以找到我的联系方式：
+
+- EMAIL： waitfox@qq.com
+
+- XMPP：blueradish@xmpp.jp
+
+不使用微信/QQ
