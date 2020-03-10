@@ -1,7 +1,7 @@
 baseURL = "https://iminto.github.io/"
 languageCode = "zh-cn"
 title = "白菜不是菜"
-theme = "jeffprod"
+theme = "mainroad"
 
 [Author] # Used in authorbox
   name = "小白菜"
