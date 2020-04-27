@@ -139,7 +139,7 @@ docker build . -t bcdemo:1.0
 编写yaml文件
 
 ```yaml
-apiVersion: apps/v1beta2
+apiVersion: v1
 kind: Deployment
 metadata:
   name: k8s-springboot-demo
