@@ -2,7 +2,7 @@
 title: "K8s部署springboot"
 date: 2020-03-06T13:44:14+08:00
 archives: "2020"
-tags: [k8s]
+tags: [k8s,Java]
 author: waitfox@qq.com
 ---
 ### 1.安装k8s
