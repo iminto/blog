@@ -67,8 +67,7 @@ mi/helm-chart   0.2.0           1.16.4          A Helm chart for Kubernetes
 
 1.minio虽然是一个文件对象服务器，但是也支持直接在OS文件系统下的操作。也就是说，直接在文件夹上的操作会同步到minio的数据库中。此前一直顾虑minio这种文件系统是否适合用来做repo，其实是多虑的。
 
-2.我下载的是helm v3版本，打包出来的是tgz文件，helm2格式的仓库组织形式。我看rancher应用商店内置了一些仓库却是git+文件夹格式的组织结构。
-我在官网 https://helm.sh/docs/topics/chart_repository/ 看到的helm仓库格式如下，也是典型的tgz+index.yaml格式
+2.官网 https://helm.sh/docs/topics/chart_repository/ 的helm仓库格式如下，典型的tgz+index.yaml格式
 
 ```bash
 charts/
@@ -80,7 +79,7 @@ charts/
   |- alpine-0.1.2.tgz.prov
 ```
 
-可能rancher内置的应用商店是自己增强的？
+然而，helm安装是支持文件夹格式的包路径，所以有些应用商店如rancher内置了一些仓库是git+文件夹格式的组织结构，这不是标准的helm仓库，但是也是可以使用的，只是不能被helm repo add而已。这样的仓库需要下载一个文件夹到临时目录再调用helm安装。
 
 
 3.如果你发布了两个版本的chart包，也update了，但是仓库默认只能搜到高版本的。需要这么做
