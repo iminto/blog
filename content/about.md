@@ -7,7 +7,7 @@ weight: 60
 
 目前可以找到我的联系方式：
 
-- EMAIL： waitfox@qq.com
+- EMAIL：plmeiziAt126.com
 
 - XMPP：blueradish@xmpp.jp
 
