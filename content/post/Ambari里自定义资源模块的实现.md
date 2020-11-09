@@ -36,10 +36,17 @@ import java.util.Collections;
 @Api(value = "Hdfss", description = "Endpoint for user specific operations")
 public class HdfsService extends BaseService {
 
-    @GET
+    @GET//查询全部
     @Produces("text/plain")
-    public Response getUsers(String body, @Context HttpHeaders headers, @Context UriInfo ui) {
+    public Response getHdfses(String body, @Context HttpHeaders headers, @Context UriInfo ui) {
         return handleRequest(headers, body, ui, Request.Type.GET, createHdfsResource(null));
+    }
+    
+    @GET
+    @Path("{path}")//查询单个
+    @Produces("text/plain")
+    public Response getHdfs(String body, @Context HttpHeaders headers, @Context UriInfo ui) {
+        return handleRequest(headers, body, ui, Request.Type.GET, createHdfsResource(path));
     }
 
     private ResourceInstance createHdfsResource(String path) {
@@ -153,6 +160,11 @@ public class HdfsResourceProvider extends AbstractControllerResourceProvider{
         return hdfsRequest;
     }
 
+     @Override
+    public RequestStatus updateResources(Request request, Predicate predicate){
+        //更新操作略
+        return getRequestStatus(null);
+    }
 
 
     @Override
@@ -275,9 +287,20 @@ orm包下添加对应的实体类和Dao实现，resource/META-INF下需要手动
    </persistence-unit>   
 ```
 
+
 ### 5.注入相关
 
-AmbariServer类也需要相应注入类依赖的对象
+AmbariServer类里也需要相应注入类依赖的对象，一种方式是手动注入，例如：
+
+```java
+ermissionResourceProvider.init(injector.getInstance(PermissionDAO.class));
+    ViewPermissionResourceProvider.init(injector.getInstance(PermissionDAO.class));
+    PrivilegeResourceProvider.init(injector.getInstance(PrivilegeDAO.class), injector.getInstance(UserDAO.class),
+        injector.getInstance(GroupDAO.class), injector.getInstance(PrincipalDAO.class),
+        injector.getInstance(PermissionDAO.class), injector.getInstance(ResourceDAO.class));
+```
+
+还有一种方式是注解注入，参考org.apache.ambari.server.controller.ControllerModule
 
 
 ### 6.postman模拟验证
@@ -335,3 +358,16 @@ curl --location --request GET 'http://10.180.210.146:8080/api/v1/hdfs?fields=Hdf
 也可以抛开ambari的规则，自由使用javax.ws风格。
 
 但这样就没法使用Ambari内置的权限和谓词风格URL查询了
+
+### 8.异常和参数校验
+
+参数校验在ResourceProvider里，抛出SystemException即可返回给页面
+
+权限异常
+
+```java
+ if (!AuthorizationHelper.isAuthorized(resourceType, resourceId, RoleAuthorization.SERVICE_RUN_SERVICE_CHECK)) {
+              throw new AuthorizationException("The authenticated user is not authorized to execute service checks.");
+            }
+
+```

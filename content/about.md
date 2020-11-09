@@ -7,7 +7,7 @@ weight: 60
 
 目前可以找到我的联系方式：
 
-- EMAIL：plmeiziAt126.com
+- EMAIL：cGxtZWl6aUAxMjYuY29t
 
 - XMPP：blueradish@xmpp.jp
 
