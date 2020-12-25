@@ -287,6 +287,91 @@ orm包下添加对应的实体类和Dao实现，resource/META-INF下需要手动
    </persistence-unit>   
 ```
 
+entity举例：
+
+```java
+package org.apache.ambari.server.orm.entities;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = "admin_cluster_host")
+public class AdminClusterHostEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "id", nullable = false, updatable = false)
+    private Integer id;
+    @Column(name = "host", length = 255)
+    private String host;
+    @Column(name = "cluster", length = 255)
+    private String cluster;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(String cluster) {
+        this.cluster = cluster;
+    }
+}
+
+```
+
+dao举例
+
+```java
+package org.apache.ambari.server.orm.dao;
+
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
+import org.apache.ambari.server.orm.RequiresSession;
+import org.apache.ambari.server.orm.entities.AdminClusterHostEntity;
+import org.apache.ambari.server.orm.entities.AlertHistoryEntity;
+
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.TypedQuery;
+import java.util.Collections;
+import java.util.List;
+
+@Singleton
+public class AdminClusterDAO {
+
+    @Inject
+    private Provider<EntityManager> m_entityManagerProvider;
+
+    @RequiresSession
+    public List<AdminClusterHostEntity> findAll() {
+        TypedQuery<AdminClusterHostEntity> query = m_entityManagerProvider.get().createQuery(
+                "SELECT ac FROM AdminClusterHostEntity ac", AdminClusterHostEntity.class);
+        try {
+            return query.getResultList();
+        } catch (NoResultException e) {
+            return Collections.emptyList();
+        }
+    }
+}
+
+```
+
+
 
 ### 5.注入相关
 
@@ -301,6 +386,11 @@ ermissionResourceProvider.init(injector.getInstance(PermissionDAO.class));
 ```
 
 还有一种方式是注解注入，参考org.apache.ambari.server.controller.ControllerModule
+
+Ambari注入这块比较迷，比如dao里用到的m_entityManagerProvider对象就不需要手动注入，在它原有的类里使用新加的dao也不需要手动注入。但是有些自己写的ResourceProvider里就需要注入。
+
+
+
 
 
 ### 6.postman模拟验证
@@ -371,3 +461,4 @@ curl --location --request GET 'http://10.180.210.146:8080/api/v1/hdfs?fields=Hdf
             }
 
 ```
+
