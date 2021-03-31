@@ -5,10 +5,7 @@ menu: "main"
 weight: 60
 ---
 
-目前可以找到我的联系方式：
-
-- EMAIL：cGxtZWl6aUAxMjYuY29t
-
-- XMPP：blueradish@xmpp.jp
+目前可以找到我的联系方式：(联系方式隐藏在下图哦)
+![email](/img/email.jpg)
 
 不使用微信/QQ
