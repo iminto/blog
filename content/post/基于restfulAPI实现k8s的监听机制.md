@@ -2,7 +2,7 @@
 title: "基于restfulAPI实现k8s的监听机制"
 date: 2020-08-11T10:17:04+08:00
 archives: "2020"
-tags: [k8s]
+tags: [k8s,Java]
 author: baicai
 ---
 

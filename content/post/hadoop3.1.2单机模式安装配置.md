@@ -2,7 +2,7 @@
 title: "hadoop 3.1.2 单机模式安装配置"
 date: 2019-08-25T23:12:21+08:00
 archives: "2019"
-tags: [Java]
+tags: [Java,大数据]
 author: baicai
 ---
 # hadoop 3.1.2 单机模式安装配置

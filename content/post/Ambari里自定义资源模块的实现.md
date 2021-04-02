@@ -2,7 +2,7 @@
 title: "Ambari里自定义资源模块的实现"
 date: 2020-10-13T09:52:43+08:00
 archives: "2020"
-tags: [Java]
+tags: [Java,大数据]
 author: baicai
 ---
 
