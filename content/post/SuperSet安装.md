@@ -96,8 +96,9 @@ superset init
 # To start a development web server on port 8088, use -p to bind to another port
 superset run -p 8088 --with-threads --reload --debugger
 ```
-再superset load_examples这一步，可能会卡很久，应该是下载网络数据被GFW卡了，直接中止就好了。
-superset默认只绑定localhost，想要外网可访问，可以绑定一个主机。
+在superset load_examples这一步，可能会卡很久然后失败，原因是example数据是存放在github的，然而某些人没有妈，所以就不能访问了。可以直接中止就好了。或者从github上手动下载回来（压缩包大约28M），然后手动导入（需要起一个HTTP服务，修改Superset源码superset/examples/helpers.py替换BASE_URL，比较麻烦）。
+
+另外superset默认只绑定localhost，想要外网可访问，可以绑定一个主机。
 
 ```bash
 #hosts文件里添加一条映射
