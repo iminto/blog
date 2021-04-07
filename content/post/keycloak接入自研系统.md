@@ -1,6 +1,6 @@
 ---
 title: "Keycloak接入自研系统"
-date: 2021-03-24T17:39:00+08:00
+date: 2021-04-07T09:39:00+08:00
 tags: [Java]
 ---
 
@@ -562,6 +562,76 @@ keycloak的配置不再赘述。
 
 这块不再举例，自己写个Filter去KeycloakSecurityContext里拿就可以了。
 
+
+## 其它问题
+
+### 1.如何用代码完成在KeyCloak注册和配置过程，实现自动化配置？
+
+KeyCloark有restApi，也有命令行工具。下面是简单暴力的做法，使用命令行
+
+```bash
+#添加管理员用户
+.../bin/add-user-keycloak.sh -r master -u <username> -p <password>
+
+$ kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user admin 
+$ kcadm.sh create realms -s realm=demorealm -s enabled=true -o
+$ CID=$(kcadm.sh create clients -r demorealm -s clientId=my_client -s 'redirectUris=["http://localhost:8980/myapp/*"]' -i)
+$ kcadm.sh get clients/$CID/installation/providers/keycloak-oidc-keycloak-json
+```
+
+如下所示，使用windows举例
+
+```bash
+PS G:\keycloak11\bin> .\kcadm config credentials --server http://localhost:8080/auth --realm master --user admin        Logging into http://localhost:8080/auth as user admin of realm master
+Enter password: admin
+
+PS G:\keycloak11\bin> .\kcadm create realms -s realm=demorealm -s enabled=true -o
+
+PS G:\keycloak11\bin> .\kcadm create clients -r demorealm -s clientId=my_client -s 'redirectUris=[\"http://localhost:8980/myapp/*\"]' -i > clientid.txt
+PS G:\keycloak11\bin> set /p CID=<clientid.txt
+
+PS G:\keycloak11\bin> .\kcadm get http://localhost:8080/auth/admin/realms/demorealm/clients/8aba2b1f-4587-43ba-8f51-d2e75db5f65d/installation/providers/keycloak-oidc-keycloak-json
+{
+  "realm" : "demorealm",
+  "auth-server-url" : "http://localhost:8080/auth/",
+  "ssl-required" : "external",
+  "resource" : "my_client",
+  "credentials" : {
+    "secret" : "54b8027b-6d7f-4e2b-9b6a-5c1e85b685fa"
+  },
+  "confidential-port" : 0
+}
+PS G:\keycloak11\bin>
+```
+
+基本操作：
+
+```bash
+$ kcadm.sh create ENDPOINT [ARGUMENTS]
+$ kcadm.sh get ENDPOINT [ARGUMENTS]
+$ kcadm.sh update ENDPOINT [ARGUMENTS]
+$ kcadm.sh delete ENDPOINT [ARGUMENTS]
+```
+
+ENDPOINT is a target resource URI and can either be absolute (starting with `http:` or `https:`) or relative, used to compose an absolute URL of the following format:
+
+```
+SERVER_URI/admin/realms/REALM/ENDPOINT
+```
+
+For example, if you authenticate against the server http://localhost:8080/auth and realm is `master`, then using `users` as ENDPOINT results in the resource URL http://localhost:8080/auth/admin/realms/master/users.
+
+If you set ENDPOINT to `clients`, the effective resource URI would be http://localhost:8080/auth/admin/realms/master/clients.
+
+角色和用户的管理等也能用kcadm命令来完成。
+
+
+
+### 2.如何退出
+
+```java
+HttpServletRequest.logout()
+```
 
 
 ## 参考
