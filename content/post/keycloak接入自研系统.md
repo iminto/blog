@@ -633,6 +633,21 @@ If you set ENDPOINT to `clients`, the effective resource URI would be http://loc
 HttpServletRequest.logout()
 ```
 
+### 3.更暴力的接入方式KeyCloak Proxy（已停止维护）
+
+把KeyCloak作为一个proxy来使用，免去修改现有代码。
+
+https://hub.docker.com/r/jboss/keycloak-proxy/  这里有简单的使用方式说明。这种方式只能代理一个client。
+
+> **This image is deprecated as the Java based Proxy will be replaced by a new Go based implementation soon.**
+
+keycloak-proxy在2018年已停止维护，用Golang实现的继任者louketo-proxy也已在2020年停止更新维护。
+
+官方文档已不推荐使用这种方式，相关文档已移除。
+
+ouketo-proxy停止更新和维护，官网说明：https://www.keycloak.org/2020/08/sunsetting-louketo-project.adoc
+
+官网提供的一种类似替代方案：https://github.com/oauth2-proxy/oauth2-proxy （Golang实现，未验证）
 
 ## 参考
 
