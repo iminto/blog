@@ -1,5 +1,5 @@
 ---
-title: "SuperSet安装"
+title: "SuperSet安装配置"
 date: 2021-04-02T11:15:20+08:00
 tags: [大数据]
 author: baicai
@@ -109,3 +109,98 @@ superset run -h ten  -p 8080 --with-threads --reload
 superset run -h 110.6.7.8  -p 8080 --with-threads --reload
 ```
 这操作也有点诡异了些。。
+
+> 2021-04-13更新
+
+### 导入样例
+
+前面说过，在superset load_examples这一步会失败，原因是example数据是存放在github的，这个网站被司马佬吃了。这个路径配置在examples/helpers.py里的BASE_URL项。
+
+```bash
+#github上下载examples压缩包
+wget https://github.com/apache-superset/examples-data/archive/refs/heads/master.zip
+#解压，启动本地server
+unzip master.zip
+python -m SimpleHTTPServer 18089
+#PYTHONPATH处理
+cp /root/miniconda2/envs/superset/lib/python3.8/site-packages/superset/examples/ /root/py/examples
+#修改helpers.py
+BASE_URL = "http://10.180.210.146:18089/"
+#导入
+superset load_examples
+```
+
+成功的话，输出应该如下：
+
+```bash
+Loaded your LOCAL configuration at [/root/py/superset_config.py]
+Loaded your LOCAL configuration at [/root/py/superset_config.py]
+logging was configured successfully
+INFO:superset.utils.logging_configurator:logging was configured successfully
+/root/miniconda2/envs/superset/lib/python3.8/site-packages/flask_caching/__init__.py:201: UserWarning: Flask-Caching: CACHE_TYPE is set to null, caching is effectively disabled.
+  warnings.warn(
+No PIL installation found
+INFO:superset.utils.screenshots:No PIL installation found
+Loading examples metadata and related data into examples
+Creating default CSS templates
+Loading energy related dataset
+Creating table [wb_health_population] reference
+Loading [World Bank's Health Nutrition and Population Stats]
+Creating table [wb_health_population] reference
+Creating a World's Health Bank dashboard
+Loading [Birth names]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table [birth_names] reference
+Creating some slices
+Creating a dashboard
+Loading [Random time series data]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table [random_time_series] reference
+Creating a slice
+Loading [Random long/lat data]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table reference
+Creating a slice
+Loading [Country Map data]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table reference
+Creating a slice
+Loading [Multiformat time series]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table [multiformat_time_series] reference
+Creating Heatmap charts
+Loading [Paris GeoJson]
+Creating table paris_iris_mapping reference
+...
+```
+
+### 自定义配置及汉化
+
+编辑配置文件后重启即可
+
+```bash
+vim /root/miniconda2/envs/superset/lib/python3.8/site-packages/superset/config.py
+
+# Setup default language
+BABEL_DEFAULT_LOCALE = "zh"
+```
+
+这样直接修改配置文件很麻烦（路径太深），可以把自定义配置文件放到指定位置：
+
+To configure your application, you need to create a file `superset_config.py` and add it to your `PYTHONPATH`. 
+
+All the parameters and default values defined in https://github.com/apache/superset/blob/master/superset/config.py can be altered in your local `superset_config.py`. 
+
+
+
+### API文档
+
+API 文档地址：http://10.180.210.146:18088/swagger/v1
+
+虽然SuperSet支持Oauth，但由于SuperSet用的是FlaskAB框架（不是Flask框架），支持比较弱，需要自己写python代码。如果是外部系统对接Superset，只能用cookie登陆的方式调用。
+
