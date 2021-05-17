@@ -97,6 +97,8 @@ Disassembly of section .data:
 另外，strace，gdb等工具也有一定的帮助。当然，上IDA这种大型武器就更有效了。
 这只是浅尝辄止，就算dump出了这么一堆汇编代码，又有什么用，没那么容易看懂。
 
+我又凭啥让别人相信这东西不是个正常的二进制文件？仅仅凭它各种龌龊的隐藏行为还不够。
+
 所以，好端端的一个ELF可执行文件，怎么就没了section table呢？很简单，脚本小子就是喜欢玩些小把戏，很容易就想到是加壳了，Linux下最容易想到的壳就是UPX。
 
 ```bash
@@ -129,6 +131,41 @@ Unpacked 1 file.
 要是脚本小子把UPX壳的信息给隐藏了，那么UPX自带的-d命令就没法脱壳了，这个时候就得用IDA了。加壳的本质就是把原来的程序的数据全部压缩加密了，在静态文件中无法分析，随着程序的执行，运行时会将代码释放到内存中。我们可以用ida远程调试test程序，找到upx自解壳后的 OEP，再把内存给dump出来，就可以实现手动脱壳了。怎样找OEP，这就得看经验了。
 
 脱壳之后呢，继续用strings，strace，netstat等命令做定性分析。
+
+
+其实到了这一步,strings命令已经足够分析出其行为了。
+```bash
+[1;37monnection
+ * COMMANDS     'h' hashrate, 'p' pause, 'r' resume, 's' results, 'c' connection
+>wz 
+*ctz>3>c)
+:w 3
+[32m||
+[31m ERROR 
+[32m||
+[37m Invalid Port Use In This Range 
+[36m'1-65535' 
+[37me.g
+[31m ( ./xmrig -p 3333 )
+[32m||
+[31m ERROR 
+[32m||
+[37m Invalid Class You Can Use Only These Classes 
+[36m'192.168'
+[32m, 
+[36m'172'
+[32m, 
+[36m'100'
+[32m, 
+[36m'10'
+[37m e.g
+[31m ( ./xmrig -lan 192.168.0.1 )
+[32m||
+[31m ERROR 
+[32m||
+[37m Empty Or Invalid Pool Address
+```
+还能分析出是C++写的木马。想要反汇编出C++源文件，你吃屁呢。objdump得依赖debug信息才行，脚本小子再菜鸡也不会这么做啊。要C++源文件，那只能用IDA dump了，这也得出近似的源文件。
 
 当然了，最简单的就是直接上传到virustotal，最后得出的结果果然是一个Linux.Risk.Bitcoinminer.Tbix。
 
