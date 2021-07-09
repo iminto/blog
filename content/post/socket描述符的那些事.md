@@ -62,7 +62,7 @@ lrwx------ 1 root root 64 Jul  7 13:49 95 -> socket:[5722372]
 [root@manager net]#
 ```
 这个文件怎么解读呢，我们暂时只看第一部分
-
+```bash
    8: 55F9B40A:0016 59CDB40A:2738 01 
    |      |      |      |      |   |--> connection state（套接字状态）
    |      |      |      |      |------> remote TCP port number（远端端口，主机字节序）
@@ -71,6 +71,7 @@ lrwx------ 1 root root 64 Jul  7 13:49 95 -> socket:[5722372]
    |      |---------------------------> local IPv4 address（本地IP，网络字节序）
    |----------------------------------> number of entry
 
+```
 比如我们看到59CDB40A:2738这个rem_address，很自然它就是TCP的四元组，十六进制转为二进制后就是
 89.205.180.10:10040，注意此处IP地址应该是10.180.205.89。用lsof验证下
 ```bash
