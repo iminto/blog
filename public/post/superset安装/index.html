@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>SuperSet安装配置 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Centos8安装Superset。Superset 是 Airbnb （知名在线房屋短租公司）开源的数据探查与可视化平台（曾用名 Panoramix、Caravel ），也就是BI，该工具在可视化、易用性和交互性上非常有特色。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/superset%E5%AE%89%E8%A3%85/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="SuperSet安装配置">
+  <meta property="og:description" content="Centos8安装Superset。Superset 是 Airbnb （知名在线房屋短租公司）开源的数据探查与可视化平台（曾用名 Panoramix、Caravel ），也就是BI，该工具在可视化、易用性和交互性上非常有特色。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2021-04-02T11:15:20+08:00">
+    <meta property="article:modified_time" content="2021-04-02T11:15:20+08:00">
+    <meta property="article:tag" content="大数据">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="SuperSet安装配置">
+  <meta name="twitter:description" content="Centos8安装Superset。Superset 是 Airbnb （知名在线房屋短租公司）开源的数据探查与可视化平台（曾用名 Panoramix、Caravel ），也就是BI，该工具在可视化、易用性和交互性上非常有特色。">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">SuperSet安装配置</h1>
+          <div class="meta">Posted on 2021年4月2日</div>
+        </div>
+        
+        <section class="body">
+          <p>Centos8安装Superset。Superset 是 Airbnb （知名在线房屋短租公司）开源的数据探查与可视化平台（曾用名 Panoramix、Caravel ），也就是BI，该工具在可视化、易用性和交互性上非常有特色。</p>
+<p>不建议使用python3.8以下版本。低版本建议使用docker-composer或者helm安装。当然，想要低版本Python安装也不是不可以，其实也就一个conda create 的操作而已。我在Centos7+Python 2.7.5 环境下也安装成功。
+我是新环境，直接升级就好。</p>
+<h3 id="初始化升级到python-38非必须">初始化，升级到python 3.8（非必须）</h3>
+<pre><code class="language-bash">wget https://www.python.org/ftp/python/3.8.1/Python-3.8.1.tgz
+yum install gcc gcc-c++ libffi-devel
+tar -xvf Python-3.8.1.tgz
+cd Python-3.8.1
+ ./configure --prefix=/usr/local/python3
+make &amp;&amp; make install
+rm -f /usr/bin/python
+rm -f /usr/bin/pip
+ln -s /usr/local/python3/bin/python3 /usr/bin/python
+ln -s /usr/local/python3/bin/python3 /usr/bin/python
+python -V
+</code></pre>
+<h3 id="安装miniconda">安装miniconda</h3>
+<pre><code class="language-bash">wget -c https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+chmod 777 Miniconda3-latest-Linux-x86_64.sh
+bash Miniconda3-latest-Linux-x86_64.sh
+</code></pre>
+<p>一步一步来，最后把conda的路径加入环境变量。</p>
+<pre><code class="language-bash">conda list #验证安装是否成功
+
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/free/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/pkgs/main/
+conda config --add channels https://mirrors.tuna.tsinghua.edu.cn/anaconda/cloud/conda-forge/
+conda config --add channels conda create -n superset python=3.8
+conda config --get channels
+</code></pre>
+<h3 id="使用conda安装superset">使用conda安装SuperSet</h3>
+<p>最后进入安装superset环节。创建虚拟环境，这也是低版本python安装高版本python软件的关键。为什么不直接用pip，还是考虑到python版本比较混乱的问题。为什么不用virtualenv，主要是conda能安装一些依赖，减少手动操作。最新版的superset应该是不需要这么麻烦，pip一路到底就可以，不过我还是参考了老的安装教程。有闲的可以直接看官方教程，更简单。</p>
+<pre><code class="language-bash">conda create -n superset python=3.8
+activate superset
+pip install apache-superset
+</code></pre>
+<p>要退出conda创建的虚拟环节可以用conda deactivate指令。</p>
+<p>查看和切换虚拟环境</p>
+<pre><code>conda info --envs
+conda env list
+conda activate base
+</code></pre>
+<p>如果pip太慢，可以加入国内源</p>
+<pre><code class="language-bash">#新建配置文件
+touch ~/.pip/pip.conf
+#加入如下配置
+[global]
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+[install]
+trusted-host = https://pypi.tuna.tsinghua.edu.cn
+
+</code></pre>
+<p>如果出现了类似的报错</p>
+<pre><code class="language-bash"> gcc: error trying to exec 'cc1plus': execvp: No such file or directory
+  error: command 'gcc' failed with exit status 1
+  ----------------------------------------
+  ERROR: Failed building wheel for python-geohash
+
+</code></pre>
+<p>是因为缺少了 gcc-c++，安装即可。这就是第一步里面的初始化所做的。</p>
+<h3 id="配置和启动">配置和启动</h3>
+<p>如果顺利的话，superset应该是安装成功了。接下来就是官方文档里的初始化操作了。</p>
+<pre><code class="language-bash">superset db upgrade
+# Create an admin user (you will be prompted to set a username, first and last name before setting a password)
+$ export FLASK_APP=superset
+superset fab create-admin
+
+# Load some data to play with
+superset load_examples
+
+# Create default roles and permissions
+superset init
+
+# To start a development web server on port 8088, use -p to bind to another port
+superset run -p 8088 --with-threads --reload --debugger
+</code></pre>
+<p>在superset load_examples这一步，可能会卡很久然后失败，原因是example数据是存放在github的，然而某些人没有妈，所以就不能访问了。可以直接中止就好了。或者从github上手动下载回来（压缩包大约28M），然后手动导入（需要起一个HTTP服务，修改Superset源码superset/examples/helpers.py替换BASE_URL，比较麻烦）。</p>
+<p>另外superset默认只绑定localhost，想要外网可访问，可以绑定一个主机。</p>
+<pre><code class="language-bash">#hosts文件里添加一条映射
+0.0.0.0 ten
+#绑定ten
+superset run -h ten  -p 8080 --with-threads --reload
+#这样直接绑定IP地址是会报错的
+superset run -h 110.6.7.8  -p 8080 --with-threads --reload
+</code></pre>
+<p>这操作也有点诡异了些。。</p>
+<blockquote>
+<p>2021-04-13更新</p></blockquote>
+<h3 id="导入样例">导入样例</h3>
+<p>前面说过，在superset load_examples这一步会失败，原因是example数据是存放在github的，这个网站被司马佬吃了。这个路径配置在examples/helpers.py里的BASE_URL项。</p>
+<pre><code class="language-bash">#github上下载examples压缩包
+wget https://github.com/apache-superset/examples-data/archive/refs/heads/master.zip
+#解压，启动本地server
+unzip master.zip
+python -m SimpleHTTPServer 18089
+#PYTHONPATH处理
+cp /root/miniconda2/envs/superset/lib/python3.8/site-packages/superset/examples/ /root/py/examples
+#修改helpers.py
+BASE_URL = &quot;http://10.180.210.146:18089/&quot;
+#导入
+superset load_examples
+</code></pre>
+<p>成功的话，输出应该如下：</p>
+<pre><code class="language-bash">Loaded your LOCAL configuration at [/root/py/superset_config.py]
+Loaded your LOCAL configuration at [/root/py/superset_config.py]
+logging was configured successfully
+INFO:superset.utils.logging_configurator:logging was configured successfully
+/root/miniconda2/envs/superset/lib/python3.8/site-packages/flask_caching/__init__.py:201: UserWarning: Flask-Caching: CACHE_TYPE is set to null, caching is effectively disabled.
+  warnings.warn(
+No PIL installation found
+INFO:superset.utils.screenshots:No PIL installation found
+Loading examples metadata and related data into examples
+Creating default CSS templates
+Loading energy related dataset
+Creating table [wb_health_population] reference
+Loading [World Bank's Health Nutrition and Population Stats]
+Creating table [wb_health_population] reference
+Creating a World's Health Bank dashboard
+Loading [Birth names]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table [birth_names] reference
+Creating some slices
+Creating a dashboard
+Loading [Random time series data]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table [random_time_series] reference
+Creating a slice
+Loading [Random long/lat data]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table reference
+Creating a slice
+Loading [Country Map data]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table reference
+Creating a slice
+Loading [Multiformat time series]
+Done loading table!
+--------------------------------------------------------------------------------
+Creating table [multiformat_time_series] reference
+Creating Heatmap charts
+Loading [Paris GeoJson]
+Creating table paris_iris_mapping reference
+...
+</code></pre>
+<h3 id="自定义配置及汉化">自定义配置及汉化</h3>
+<p>编辑配置文件后重启即可</p>
+<pre><code class="language-bash">vim /root/miniconda2/envs/superset/lib/python3.8/site-packages/superset/config.py
+
+# Setup default language
+BABEL_DEFAULT_LOCALE = &quot;zh&quot;
+</code></pre>
+<p>这样直接修改配置文件很麻烦（路径太深），可以把自定义配置文件放到指定位置：</p>
+<p>To configure your application, you need to create a file <code>superset_config.py</code> and add it to your <code>PYTHONPATH</code>.</p>
+<p>All the parameters and default values defined in <a href="https://github.com/apache/superset/blob/master/superset/config.py">https://github.com/apache/superset/blob/master/superset/config.py</a> can be altered in your local <code>superset_config.py</code>.</p>
+<h3 id="api文档">API文档</h3>
+<p>API 文档地址：http://10.180.210.146:18088/swagger/v1</p>
+<p>虽然SuperSet支持Oauth，但由于SuperSet用的是FlaskAB框架（不是Flask框架），支持比较弱，需要自己写python代码。如果是外部系统对接Superset，只能用cookie登陆的方式调用。</p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE">大数据</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

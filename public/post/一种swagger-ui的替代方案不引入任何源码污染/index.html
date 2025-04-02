@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>一种swagger Ui的替代方案不引入任何源码污染 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="在后端项目中，难免遇到需要写接口文档方便第三方调用的场景，一般业界最常用的方案是使用swagger。Java项目中，一般采用springfox项目，它集成了swagger和swagger-ui，不需要单独部署项目，可让文档随着项目一起发布。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/%E4%B8%80%E7%A7%8Dswagger-ui%E7%9A%84%E6%9B%BF%E4%BB%A3%E6%96%B9%E6%A1%88%E4%B8%8D%E5%BC%95%E5%85%A5%E4%BB%BB%E4%BD%95%E6%BA%90%E7%A0%81%E6%B1%A1%E6%9F%93/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="一种swagger Ui的替代方案不引入任何源码污染">
+  <meta property="og:description" content="在后端项目中，难免遇到需要写接口文档方便第三方调用的场景，一般业界最常用的方案是使用swagger。Java项目中，一般采用springfox项目，它集成了swagger和swagger-ui，不需要单独部署项目，可让文档随着项目一起发布。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2020-05-12T17:18:49+08:00">
+    <meta property="article:modified_time" content="2020-05-12T17:18:49+08:00">
+    <meta property="article:tag" content="Java">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="一种swagger Ui的替代方案不引入任何源码污染">
+  <meta name="twitter:description" content="在后端项目中，难免遇到需要写接口文档方便第三方调用的场景，一般业界最常用的方案是使用swagger。Java项目中，一般采用springfox项目，它集成了swagger和swagger-ui，不需要单独部署项目，可让文档随着项目一起发布。">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">一种swagger Ui的替代方案不引入任何源码污染</h1>
+          <div class="meta">Posted on 2020年5月12日</div>
+        </div>
+        
+        <section class="body">
+          <p>在后端项目中，难免遇到需要写接口文档方便第三方调用的场景，一般业界最常用的方案是使用swagger。Java项目中，一般采用springfox项目，它集成了swagger和swagger-ui，不需要单独部署项目，可让文档随着项目一起发布。</p>
+<p>但是开源项目往往是开源一时热，事后拂衣去，缺少维护。这个项目已经两年多没有维护了，很多人在issue反馈过bug，作者一年前表示自己比较忙，没空维护。</p>
+<p>springfox最新的版本是2.9.2，不支持spring5（虽然有个快照版支持spring5，但一直没发布，整合也有点麻烦）。spring5比较大的一个改变就是增加了webflux，因此旧版springfox无法兼容spring5的。</p>
+<p>其实用快照版，稍作修改也能让springfox支持webflux，但是我不是很喜欢这种做法。一个是增加了打包体积和运行内存占用，另一个则是swagger的使用污染了Java源码，很是不美观，强迫症不能忍。</p>
+<pre><code class="language-java">@RestController
+@RequestMapping(&quot;/dataspace/api/v1/hive&quot;)
+@Api(value = &quot;hive&quot;, description = &quot;hive资源管理&quot;)
+public class HiveManagerController {
+    @Autowired
+    HiveManagerService hiveManagerService;
+
+    @RequestMapping(value = &quot;/list&quot;, method = {RequestMethod.POST})
+    @ApiOperation(value = &quot;资源列表&quot;, notes = &quot;&quot;)
+    public PageResult&lt;HiveVO&gt; showPublic(@ApiParam(value = &quot;hive查询对象&quot;)
+                                          @RequestBody PageReqParam&lt;HiveReq&gt; hiveReq) {
+        PageResult&lt;HiveVO&gt; result = new PageResult&lt;&gt;();
+        if (hiveReq.getReqParam() == null) {
+            result.setCode(-1);
+            result.setMsg(&quot;参数不完整&quot;);
+            return result;
+        }
+        if (hiveReq.getPageSize() &gt; 50 || hiveReq.getPageSize() &lt; 0) {
+            result.setCode(-1);
+            result.setMsg(&quot;页码非法&quot;);
+            return result;
+        }
+        result = hiveManagerService.getList(hiveReq);
+        return result;
+    }
+</code></pre>
+<p>源码中混入了各种ApiParam、Api、ApiOperation注解。</p>
+<p>再加上我现在使用的springcloud套件，需要在gateway的feign接口上加注释，这样的话，无论是springfox，还是很多第三方的api doc工具都很难胜任。</p>
+<p>于是，我想到了另外一种方法，就是javadoc。然而javadoc自带的注解很有限，不能满足第三方对文档的需求，比如</p>
+<pre><code class="language-java">    /**
+     * 根据节点名删除主机
+     * @method DELETE
+     * @path host/delHostByNodeName
+     * @param nodeName 节点名
+     * @param cluster 集群名
+     * @return JSON
+     */
+    @DeleteMapping(&quot;/delHostByNodeName&quot;)
+    public String delHostByNodeName(@RequestParam(&quot;nodeName&quot;) String nodeName,@RequestParam(&quot;cluster&quot;) String cluster);
+
+</code></pre>
+<p>javadoc并不认识method和path这两个标签，生成的文档还是缺少一些必须要的信息。</p>
+<p>这个不难，扩展下taglet即可。</p>
+<p>先引入maven依赖</p>
+<pre><code class="language-xml">&lt;dependency&gt;
+            &lt;groupId&gt;jdk.tools&lt;/groupId&gt;
+            &lt;artifactId&gt;jdk.tools&lt;/artifactId&gt;
+            &lt;version&gt;1.8&lt;/version&gt;
+            &lt;scope&gt;system&lt;/scope&gt;
+            &lt;systemPath&gt;${JAVA_HOME}/lib/tools.jar&lt;/systemPath&gt;
+        &lt;/dependency&gt;
+</code></pre>
+<p>扩展taglet代码</p>
+<pre><code class="language-java">package com.github.cloud.ali.common.tool;
+import com.sun.javadoc.Tag;
+import com.sun.tools.doclets.Taglet;
+import java.util.Map;
+
+public class MethodTaglet implements Taglet {
+    private String NAME = &quot;HTTP请求类型&quot;;
+    private String HEADER = &quot;HTTP请求类型:&quot;;
+
+    @Override
+    public boolean inField() {
+        return false;
+    }
+
+    @Override
+    public boolean inConstructor() {
+        return false;
+    }
+
+    @Override
+    public boolean inMethod() {
+        return true;
+    }
+
+    @Override
+    public boolean inOverview() {
+        return true;
+    }
+
+    @Override
+    public boolean inPackage() {
+        return true;
+    }
+
+    @Override
+    public boolean inType() {
+        return true;
+    }
+
+    @Override
+    public boolean isInlineTag() {
+        return false;
+    }
+
+    public static void register(Map tagletMap) {
+        MethodTaglet tag = new MethodTaglet();
+        Taglet t = (Taglet) tagletMap.get(tag.getName());
+        if (t != null) {
+            tagletMap.remove(tag.getName());
+        }
+        tagletMap.put(tag.getName(), tag);
+    }
+
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
+    @Override
+    public String toString(Tag tag) {
+        return &quot;&lt;DT&gt;&lt;B&gt;&quot; + HEADER + &quot;&lt;/B&gt;&lt;DD&gt;&quot;
+                + &quot;&lt;table cellpadding=2 cellspacing=0&gt;&lt;tr&gt;&lt;td bgcolor=\&quot;yellow\&quot;&gt;&quot;
+                + tag.text()
+                + &quot;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/DD&gt;\n&quot;;
+    }
+
+    @Override
+    public String toString(Tag[] tags) {
+        if (tags.length == 0) {
+            return null;
+        }
+        String result = &quot;\n&lt;DT&gt;&lt;B&gt;&quot; + HEADER + &quot;&lt;/B&gt;&lt;DD&gt;&quot;;
+        result += &quot;&lt;table cellpadding=2 cellspacing=0&gt;&lt;tr&gt;&lt;td bgcolor=\&quot;yellow\&quot;&gt;&quot;;
+        for (int i = 0; i &lt; tags.length; i++) {
+            if (i &gt; 0) {
+                result += &quot;, &quot;;
+            }
+            result += tags[i].text();
+        }
+        return result + &quot;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/DD&gt;\n&quot;;
+    }
+}
+
+</code></pre>
+<p>同理，path注解也是类似的实现。编译命令如下：</p>
+<pre><code class="language-bash">javadoc -protected -splitindex -use -author -version -encoding utf-8 -charset utf-8 -d /usr/jackma/doc  -windowtitle &quot;ali 文档&quot;  $(ls /usr/jackma/ali/ali-common/src/main/java/com/github/cloud/ali/common/model/*.java |tr &quot;\n&quot; &quot; &quot;) $(ls /usr/jackma/ali/ali-gateway/src/main/java/com/github/cloud/ali/feign/*.java |tr &quot;\n&quot; &quot; &quot;) -tag method:a:&quot;HTTP请求方法:&quot; -tag path:a:&quot;请求路径:&quot;  -tagletpath /usr/jackma/ali/ali-common/src/main/java/com/github/cloud/ali/common/tool/MethodTaglet.java  -tagletpath /usr/jackma/ali/ali-common/src/main/java/com/github/cloud/ali/common/tool/PathTaglet.java -taglet com.github.cloud.ali.common.tool.MethodTaglet -taglet com.github.cloud.ali.common.tool.PathTaglet
+</code></pre>
+<p>最终效果如下：</p>
+<p><img src="https://s1.ax1x.com/2020/05/12/YNRadK.png" alt=" javadoc "></p>
+<p>还可以进一步，加上数据类型的注解，这样就更完善了。</p>
+<p>虽然离swagger-ui还有点差距，但是还是比原版javadoc好多了。最大的优点是没有任何限制和对源码的污染。</p>
+<p>不得不说，Java的扩展性不是盖的。</p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

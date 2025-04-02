@@ -5,8 +5,6 @@ menu: "main"
 weight: 60
 ---
 
-目前可以找到我的可回复私人联系方式：(联系方式隐藏在下图)
-![email](/img/email.jpg)
 
 不使用微信/QQ/微博/知乎
 

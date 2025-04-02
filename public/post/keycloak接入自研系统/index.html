@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Keycloak接入自研系统 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="简介
+keycloak是一个非常强大的权限认证系统，我们使用keycloak可以方便的实现SSO的功能。虽然keycloak底层使用的wildfly，但是提供了非常方便的Client Adapters和各种服务器进行对接，比如wildfly，tomcat，Jetty等。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/keycloak%E6%8E%A5%E5%85%A5%E8%87%AA%E7%A0%94%E7%B3%BB%E7%BB%9F/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="Keycloak接入自研系统">
+  <meta property="og:description" content="简介 keycloak是一个非常强大的权限认证系统，我们使用keycloak可以方便的实现SSO的功能。虽然keycloak底层使用的wildfly，但是提供了非常方便的Client Adapters和各种服务器进行对接，比如wildfly，tomcat，Jetty等。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2021-04-07T09:39:00+08:00">
+    <meta property="article:modified_time" content="2021-04-07T09:39:00+08:00">
+    <meta property="article:tag" content="Java">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="Keycloak接入自研系统">
+  <meta name="twitter:description" content="简介 keycloak是一个非常强大的权限认证系统，我们使用keycloak可以方便的实现SSO的功能。虽然keycloak底层使用的wildfly，但是提供了非常方便的Client Adapters和各种服务器进行对接，比如wildfly，tomcat，Jetty等。">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">Keycloak接入自研系统</h1>
+          <div class="meta">Posted on 2021年4月7日</div>
+        </div>
+        
+        <section class="body">
+          <h2 id="简介">简介</h2>
+<p>keycloak是一个非常强大的权限认证系统，我们使用keycloak可以方便的实现SSO的功能。虽然keycloak底层使用的wildfly，但是提供了非常方便的Client Adapters和各种服务器进行对接，比如wildfly，tomcat，Jetty等。</p>
+<p>对于最流行的SpringBoot来说，keycloak有官方Adapter，只需要修改配置即可。如果非SpringBoot应用呢，那就只能使用Java Servlet Filter Adapter了。</p>
+<p>SpringBoot接入keycloak的例子比较多，我就不赘述了。这里只简单说明下。</p>
+<h2 id="接入前的前置准备">接入前的前置准备</h2>
+<p>在接入各种应用之前，需要在keycloak中做好相应的配置。一般来说需要使用下面的步骤：</p>
+<ol>
+<li>
+<p>创建新的realm</p>
+<p>一般来说，为了隔离不同类型的系统，我们建议为不同的client创建不同的realm。当然，如果这些client是相关联的，则可以创建在同一个realm中。</p>
+</li>
+<li>
+<p>创建新的用户和角色。</p>
+<p>用户是用来登录keycloak用的，如果是不同的realm，则需要分别创建用户。用户密码也是在这一步创建的</p>
+</li>
+<li>
+<p>添加和配置client</p>
+<p>这一步是非常重要的，我们需要根据应用程序的不同，配置不同的root URL，redirect URI等。</p>
+<p>还可以配置mapper和scope信息。</p>
+<p>最后，如果是服务器端的配置的话，还需要installation的一些信息。</p>
+<p>有了这些基本的配置之后，我们就可以准备接入应用程序了。</p>
+</li>
+</ol>
+<h2 id="springboot接入keycloak">Springboot接入keycloak</h2>
+<h3 id="引入依赖">引入依赖</h3>
+<pre><code class="language-xml">	&lt;dependency&gt;
+		&lt;groupId&gt;org.keycloak&lt;/groupId&gt;
+		&lt;artifactId&gt;keycloak-spring-boot-starter&lt;/artifactId&gt;
+		&lt;version&gt;11.0.2&lt;/version&gt;
+	&lt;/dependency&gt;
+</code></pre>
+<h3 id="然后配置applicationyml">然后配置application.yml</h3>
+<pre><code class="language-yaml">keycloak:
+    auth-server-url: http://localhost:8080/auth
+    realm: wildfly
+    public-client: true
+    resource: product-app
+    securityConstraints:
+        - authRoles:
+              # 以下路径需要user角色才能访问
+              - user
+          securityCollections:
+              # name可以随便写
+              - name: user-role-mappings
+                patterns:
+                    - /users/*
+
+
+</code></pre>
+<p>至此就接入完成了，不需要编写任何代码。</p>
+<h3 id="获取keycloaksecuritycontext">获取KeycloakSecurityContext</h3>
+<p>但是实际使用中，光能控制登陆权限还不够，业务代码中还需要能获取到当前角色，用户名等信息，这就需要用到KeycloakSecurityContext了。KeycloakSecurityContext是keycloak的上下文，我们可以从其中获取到AccessToken，IDToken，AuthorizationContext和realm信息。</p>
+<p>Identity.java</p>
+<pre><code class="language-java">import java.util.List;
+
+import org.keycloak.AuthorizationContext;
+import org.keycloak.KeycloakSecurityContext;
+import org.keycloak.representations.idm.authorization.Permission;
+
+/**
+ * &lt;p&gt;This is a simple facade to obtain information from authenticated users. You should see usages of instances of this class when
+ * rendering the home page (@code home.ftl).
+ *
+ * &lt;p&gt;Instances of this class are are added to models as attributes in order to make them available to templates.
+ *
+ * @author &lt;a href=&quot;mailto:psilva@redhat.com&quot;&gt;Pedro Igor&lt;/a&gt;
+ * @see com.github.your.demo.controller.HomeController
+ */
+public class Identity {
+
+    private final KeycloakSecurityContext securityContext;
+
+    public Identity(KeycloakSecurityContext securityContext) {
+        this.securityContext = securityContext;
+    }
+
+    /**
+     * An example on how you can use the {@link org.keycloak.AuthorizationContext} to check for permissions granted by Keycloak for a particular user.
+     *
+     * @param name the name of the resource
+     * @return true if user has was granted with a permission for the given resource. Otherwise, false.
+     */
+    public boolean hasResourcePermission(String name) {
+        return getAuthorizationContext().hasResourcePermission(name);
+    }
+
+    /**
+     * An example on how you can use {@link KeycloakSecurityContext} to obtain information about user's identity.
+     *
+     * @return the user name
+     */
+    public String getName() {
+        return securityContext.getIdToken().getPreferredUsername();
+    }
+
+    /**
+     * An example on how you can use the {@link org.keycloak.AuthorizationContext} to obtain all permissions granted for a particular user.
+     *
+     * @return
+     */
+    public List&lt;Permission&gt; getPermissions() {
+        return getAuthorizationContext().getPermissions();
+    }
+
+    /**
+     * Returns a {@link AuthorizationContext} instance holding all permissions granted for an user. The instance is build based on
+     * the permissions returned by Keycloak. For this particular application, we use the Entitlement API to obtain permissions for every single
+     * resource on the server.
+     *
+     * @return
+     */
+    private AuthorizationContext getAuthorizationContext() {
+        return securityContext.getAuthorizationContext();
+    }
+}
+</code></pre>
+<p>使用</p>
+<pre><code class="language-java">@RestController
+public class HomeController {
+    private Logger logger = LoggerFactory.getLogger(HomeController.class);
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private HttpServletRequest request;
+
+    @RequestMapping(&quot;/users&quot;)
+    @ResponseBody
+    public List&lt;Users&gt; users() {
+        logIdentity();
+        logger.info(&quot;使用JdbcTemplate查询数据库&quot;);
+        String sql = &quot;SELECT * FROM users &quot;;
+        List&lt;Users&gt; queryAllList = jdbcTemplate.query(sql, new Object[]{},
+                new BeanPropertyRowMapper&lt;&gt;(Users.class));
+        logger.info(&quot;查询用户列表&quot; + queryAllList);
+        return queryAllList;
+    }
+
+    @RequestMapping(&quot;/&quot;)
+    public String home() {
+        return &quot;Hello Docker World&quot;;
+    }
+
+    private void logIdentity() {
+        KeycloakSecurityContext context=getKeycloakSecurityContext();
+        if(context!=null){
+            Identity identity=new Identity(context);
+            logger.info(&quot;KeycloakSecurityContext identity={}&quot;,identity);
+        }else{
+            logger.info(&quot;KeycloakSecurityContext is null&quot;);
+        }
+    }
+
+    private KeycloakSecurityContext getKeycloakSecurityContext() {
+        return (KeycloakSecurityContext) request.getAttribute(KeycloakSecurityContext.class.getName());
+    }
+}
+</code></pre>
+<p>Identity类来自Keycloak的官方example。上面介绍的Spring Boot中的其实是隐藏的做法，adaptor自动为我们做了和Keycloak认证服务连接的事情，如果我们需要手动去处理，则需要用到Authorization Client Java API。</p>
+<p>添加maven依赖：</p>
+<pre><code class="language-xml">&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.keycloak&lt;/groupId&gt;
+        &lt;artifactId&gt;keycloak-authz-client&lt;/artifactId&gt;
+        &lt;version&gt;${KEYCLOAK_VERSION}&lt;/version&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;
+</code></pre>
+<p>具体使用AuthzClient可查看官方文档。</p>
+<h3 id="rest接口">Rest接口</h3>
+<p>有了这些配置，我们基本上就可以创建一个基于spring boot和keycloak的一个rest服务了。</p>
+<p>假如我们为keycloak的client创建了新的用户：alice。</p>
+<p>第一步我们需要拿到alice的access token，则可以这样操作：</p>
+<pre><code class="language-sh"> export access_token=$(\
+    curl -X POST http://localhost:8180/auth/realms/spring-boot-quickstart/protocol/openid-connect/token \
+    -H 'Authorization: Basic YXBwLWF1dGh6LXJlc3Qtc3ByaW5nYm9vdDpzZWNyZXQ=' \
+    -H 'content-type: application/x-www-form-urlencoded' \
+    -d 'username=alice&amp;password=alice&amp;grant_type=password' | jq --raw-output '.access_token' \
+ )
+</code></pre>
+<p>这个命令是直接通过用户名密码的方式去keycloak服务器中拿取access_token,除了access_token，这个命令还会返回refresh_token和session state的信息。</p>
+<p>因为是直接和keycloak进行交换，所以keycloak的directAccessGrantsEnabled一定要设置为true。</p>
+<p>上面命令中的Authorization是什么值呢？</p>
+<p>这个值是为了防止未授权的client对keycloak服务器的非法访问，所以需要请求客户端提供client-id和对应的client-secret并且以下面的方式进行编码得到的：</p>
+<pre><code class="language-sh">Authorization: basic BASE64(client-id + ':' + client-secret)
+</code></pre>
+<p>access_token是JWT格式的，我们可以简单解密一下上面命令得出的token:</p>
+<pre><code class="language-json">    {
+ alg: &quot;RS256&quot;,
+ typ: &quot;JWT&quot;,
+ kid: &quot;FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE&quot;
+}.
+{
+ exp: 1603614445,
+ iat: 1603614145,
+ jti: &quot;b69c784d-5b2d-46ad-9f8d-46214add7afb&quot;,
+ iss: &quot;http://localhost:8180/auth/realms/spring-boot-quickstart&quot;,
+ sub: &quot;e6606d93-99f6-4829-ba99-1329be604159&quot;,
+ typ: &quot;Bearer&quot;,
+ azp: &quot;app-authz-springboot&quot;,
+ session_state: &quot;bdc33764-fd1a-400e-9fe0-90a82f4873c1&quot;,
+ acr: &quot;1&quot;,
+ allowed-origins: [
+  &quot;http://localhost:8080&quot;
+ ],
+ realm_access: {
+  roles: [
+   &quot;user&quot;
+  ]
+ },
+ scope: &quot;email profile&quot;,
+ email_verified: false,
+ preferred_username: &quot;alice&quot;
+}.
+[signature]
+</code></pre>
+<p>有了access_token,我们就可以根据access_token去做很多事情了。</p>
+<p>比如：访问受限的资源：</p>
+<pre><code class="language-sh">curl http://localhost:8080/api/resourcea \
+  -H &quot;Authorization: Bearer &quot;$access_token
+</code></pre>
+<p>这里的api/resourcea只是我们本地spring boot应用中一个非常简单的请求资源链接，一切的权限校验工作都会被keycloak拦截，我们看下这个api的实现：</p>
+<pre><code class="language-java"> @RequestMapping(value = &quot;/api/resourcea&quot;, method = RequestMethod.GET)
+public String handleResourceA() {
+        return createResponse();
+    }
+private String createResponse() {
+        return &quot;Access Granted&quot;;
+    }
+</code></pre>
+<p>可以看到这个只是一个简单的txt返回，但是因为有keycloak的加持，就变成了一个带权限的资源调用。</p>
+<p>上面的access_token解析过后，我们可以看到里面是没有包含权限信息的，我们可以使用access_token来交换一个特殊的RPT的token，这个token里面包含用户的权限信息：</p>
+<pre><code class="language-sh">curl -X POST \
+ http://localhost:8180/auth/realms/spring-boot-quickstart/protocol/openid-connect/token \
+ -H &quot;Authorization: Bearer &quot;$access_token \
+ --data &quot;grant_type=urn:ietf:params:oauth:grant-type:uma-ticket&quot; \
+ --data &quot;audience=app-authz-rest-springboot&quot; \
+  --data &quot;permission=Default Resource&quot; | jq --raw-output '.access_token'
+</code></pre>
+<p>将得出的结果解密之后，看下里面的内容：</p>
+<pre><code class="language-json">    {
+ alg: &quot;RS256&quot;,
+ typ: &quot;JWT&quot;,
+ kid: &quot;FJ86GcF3jTbNLOco4NvZkUCIUmfYCqoqtOQeMfbhNlE&quot;
+}.
+{
+ exp: 1603614507,
+ iat: 1603614207,
+ jti: &quot;93e42d9b-4bc6-486a-a650-b912185c35db&quot;,
+ iss: &quot;http://localhost:8180/auth/realms/spring-boot-quickstart&quot;,
+ aud: &quot;app-authz-springboot&quot;,
+ sub: &quot;e6606d93-99f6-4829-ba99-1329be604159&quot;,
+ typ: &quot;Bearer&quot;,
+ azp: &quot;app-authz-springboot&quot;,
+ session_state: &quot;bdc33764-fd1a-400e-9fe0-90a82f4873c1&quot;,
+ acr: &quot;1&quot;,
+ allowed-origins: [
+  &quot;http://localhost:8080&quot;
+ ],
+ realm_access: {
+  roles: [
+   &quot;user&quot;
+  ]
+ },
+ authorization: {
+  permissions: [
+   {
+rsid: &quot;e26d5d63-5976-4959-8683-94b7d85318e7&quot;,
+rsname: &quot;Default Resource&quot;
+}
+  ]
+ },
+ scope: &quot;email profile&quot;,
+ email_verified: false,
+ preferred_username: &quot;alice&quot;
+}.
+[signature]
+</code></pre>
+<p>可以看到，这个RPT和之前的access_token的区别是这个里面包含了authorization信息。</p>
+<p>我们可以将这个RPT的token和之前的access_token一样使用。</p>
+<h2 id="jettyjersey框架接入keycloak">Jetty+Jersey框架接入Keycloak</h2>
+<p>我们有一个老系统，用的embeded Jetty+Jersey，虽然官方提供了Jetty 9.x Adapters，但这是针对standalone而言的，现在几乎没人这么用了，所以还是得自己来。官方有Java Servlet Filter Adapter的教程，但是用的是web.xml的例子，而且语焉不详，所以这里就我自己的摸索提供一点参考。</p>
+<h3 id="jetty整合jersey框架">Jetty整合Jersey框架</h3>
+<p>先来看一下Jetty+Jersey的原生例子，涉及两个文件
+App.java</p>
+<pre><code class="language-java">package xyz.chen;
+import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.glassfish.jersey.servlet.ServletContainer;
+
+public class App {
+    public static void main(String[] args) {
+        Server server = new Server(9999);
+        ServletContextHandler context = new ServletContextHandler(ServletContextHandler.NO_SESSIONS);
+        context.setContextPath(&quot;/&quot;);
+        server.setHandler(context);
+
+        // 配置Servlet
+        ServletHolder holder = context.addServlet(ServletContainer.class.getCanonicalName(), &quot;/rest/*&quot;);
+        holder.setInitOrder(1);
+        holder.setInitParameter(&quot;jersey.config.server.provider.packages&quot;, &quot;xyz.chen&quot;);
+        holder.setInitParameter(&quot;jersey.config.server.provider.classnames&quot;, &quot;org.glassfish.jersey.server.filter.CsrfProtectionFilter&quot;);
+
+        try {
+            server.start();
+            server.join();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            server.destroy();
+        }
+    }
+}
+</code></pre>
+<p>然后是业务类：
+HelloResource.java</p>
+<pre><code class="language-java">package xyz.chen;
+
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.MultivaluedMap;
+import javax.ws.rs.core.PathSegment;
+import javax.ws.rs.core.Response;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+@Path(&quot;hello&quot;)
+public class HelloResource {
+
+    @Path(&quot;index&quot;)
+    @GET
+    @Consumes(MediaType.TEXT_PLAIN)
+    @Produces(MediaType.TEXT_PLAIN)
+    public Response helloworld() {
+        return Response.ok(&quot;hello jersey&quot;).build();
+    }
+
+    @GET
+    @Path(&quot;/user/{userName}&quot;)
+    public Response getThemeCss(@PathParam(&quot;userName&quot;) String userName) {
+
+        StringBuilder sb = new StringBuilder(userName);
+        return Response.ok(sb.toString()).build();
+    }
+}
+</code></pre>
+<p>pom.xml文件</p>
+<pre><code class="language-xml">&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+
+&lt;project xmlns=&quot;http://maven.apache.org/POM/4.0.0&quot; xmlns:xsi=&quot;http://www.w3.org/2001/XMLSchema-instance&quot;
+  xsi:schemaLocation=&quot;http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd&quot;&gt;
+  &lt;modelVersion&gt;4.0.0&lt;/modelVersion&gt;
+
+  &lt;groupId&gt;org.example&lt;/groupId&gt;
+  &lt;artifactId&gt;jersey-demo&lt;/artifactId&gt;
+  &lt;version&gt;1.0-SNAPSHOT&lt;/version&gt;
+
+  &lt;name&gt;Maven&lt;/name&gt;
+  &lt;url&gt;http://maven.apache.org/&lt;/url&gt;
+  &lt;inceptionYear&gt;2001&lt;/inceptionYear&gt;
+
+  &lt;properties&gt;
+    &lt;project.build.sourceEncoding&gt;UTF-8&lt;/project.build.sourceEncoding&gt;
+  &lt;/properties&gt;
+
+  &lt;dependencies&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.glassfish.jersey.core&lt;/groupId&gt;
+      &lt;artifactId&gt;jersey-server&lt;/artifactId&gt;
+      &lt;version&gt;2.27&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.glassfish.jersey.inject&lt;/groupId&gt;
+      &lt;artifactId&gt;jersey-hk2&lt;/artifactId&gt;
+      &lt;version&gt;2.27&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.glassfish.jersey.containers&lt;/groupId&gt;
+      &lt;artifactId&gt;jersey-container-servlet-core&lt;/artifactId&gt;
+      &lt;version&gt;2.27&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.glassfish.jersey.containers&lt;/groupId&gt;
+      &lt;artifactId&gt;jersey-container-jetty-http&lt;/artifactId&gt;
+      &lt;version&gt;2.27&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.eclipse.jetty&lt;/groupId&gt;
+      &lt;artifactId&gt;jetty-server&lt;/artifactId&gt;
+      &lt;version&gt;9.4.12.v20180830&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.eclipse.jetty&lt;/groupId&gt;
+      &lt;artifactId&gt;jetty-servlet&lt;/artifactId&gt;
+      &lt;version&gt;9.4.12.v20180830&lt;/version&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+      &lt;groupId&gt;org.eclipse.jetty&lt;/groupId&gt;
+      &lt;artifactId&gt;jetty-util&lt;/artifactId&gt;
+      &lt;version&gt;9.4.12.v20180830&lt;/version&gt;
+    &lt;/dependency&gt;
+  &lt;/dependencies&gt;
+
+  &lt;build&gt;
+    &lt;plugins&gt;
+      &lt;plugin&gt;
+        &lt;groupId&gt;org.apache.maven.plugins&lt;/groupId&gt;
+        &lt;artifactId&gt;maven-shade-plugin&lt;/artifactId&gt;
+        &lt;version&gt;2.4.3&lt;/version&gt;
+        &lt;configuration&gt;
+          &lt;createDependencyReducedPom&gt;true&lt;/createDependencyReducedPom&gt;
+          &lt;filters&gt;
+            &lt;filter&gt;
+              &lt;artifact&gt;*:*&lt;/artifact&gt;
+              &lt;excludes&gt;
+                &lt;exclude&gt;META-INF/*.SF&lt;/exclude&gt;
+                &lt;exclude&gt;META-INF/*.DSA&lt;/exclude&gt;
+                &lt;exclude&gt;META-INF/*.RSA&lt;/exclude&gt;
+              &lt;/excludes&gt;
+            &lt;/filter&gt;
+          &lt;/filters&gt;
+        &lt;/configuration&gt;
+
+        &lt;executions&gt;
+          &lt;execution&gt;
+            &lt;phase&gt;package&lt;/phase&gt;
+            &lt;goals&gt;
+              &lt;goal&gt;shade&lt;/goal&gt;
+            &lt;/goals&gt;
+            &lt;configuration&gt;
+              &lt;transformers&gt;
+                &lt;transformer
+                        implementation=&quot;org.apache.maven.plugins.shade.resource.ServicesResourceTransformer&quot; /&gt;
+                &lt;transformer
+                        implementation=&quot;org.apache.maven.plugins.shade.resource.ManifestResourceTransformer&quot;&gt;
+                  &lt;manifestEntries&gt;
+                    &lt;Main-Class&gt;xyz.chen.App&lt;/Main-Class&gt;
+                  &lt;/manifestEntries&gt;
+                &lt;/transformer&gt;
+              &lt;/transformers&gt;
+            &lt;/configuration&gt;
+          &lt;/execution&gt;
+        &lt;/executions&gt;
+      &lt;/plugin&gt;
+    &lt;/plugins&gt;
+  &lt;/build&gt;
+&lt;/project&gt;
+
+</code></pre>
+<p>运行就不再举例了。</p>
+<h3 id="整合keycloak">整合keycloak</h3>
+<p>引入依赖</p>
+<pre><code class="language-xml">    &lt;dependency&gt;
+      &lt;groupId&gt;org.keycloak&lt;/groupId&gt;
+      &lt;artifactId&gt;keycloak-servlet-filter-adapter&lt;/artifactId&gt;
+      &lt;version&gt;11.0.2&lt;/version&gt;
+    &lt;/dependency&gt;
+</code></pre>
+<p>修改App类，加入Filter</p>
+<pre><code class="language-java"> ServletHandler handler = new ServletHandler();
+ FilterHolder fh=handler.addFilterWithMapping(org.keycloak.adapters.servlet.KeycloakOIDCFilter.class,&quot;/*&quot;, EnumSet.of(DispatcherType.REQUEST));
+fh.setInitParameter(&quot;keycloak.config.file&quot;, &quot;keycloak.json&quot;);
+context.addFilter(fh, &quot;/*&quot;, EnumSet.of(DispatcherType.REQUEST));
+server.setHandler(context);
+</code></pre>
+<p>其中，keycloak.json文件来自keycloak-clients-installtion，形如</p>
+<pre><code class="language-json">{
+  &quot;realm&quot;: &quot;wildfly&quot;,
+  &quot;auth-server-url&quot;: &quot;http://localhost:8080/auth/&quot;,
+  &quot;ssl-required&quot;: &quot;external&quot;,
+  &quot;resource&quot;: &quot;product-app&quot;,
+  &quot;public-client&quot;: true,
+  &quot;confidential-port&quot;: 0
+}
+</code></pre>
+<p>keycloak的配置不再赘述。</p>
+<h3 id="获取用户权限信息">获取用户权限信息</h3>
+<p>这块不再举例，自己写个Filter去KeycloakSecurityContext里拿就可以了。</p>
+<h2 id="其它问题">其它问题</h2>
+<h3 id="1如何用代码完成在keycloak注册和配置过程实现自动化配置">1.如何用代码完成在KeyCloak注册和配置过程，实现自动化配置？</h3>
+<p>KeyCloark有restApi，也有命令行工具。下面是简单暴力的做法，使用命令行</p>
+<pre><code class="language-bash">#添加管理员用户
+.../bin/add-user-keycloak.sh -r master -u &lt;username&gt; -p &lt;password&gt;
+
+$ kcadm.sh config credentials --server http://localhost:8080/auth --realm master --user admin 
+$ kcadm.sh create realms -s realm=demorealm -s enabled=true -o
+$ CID=$(kcadm.sh create clients -r demorealm -s clientId=my_client -s 'redirectUris=[&quot;http://localhost:8980/myapp/*&quot;]' -i)
+$ kcadm.sh get clients/$CID/installation/providers/keycloak-oidc-keycloak-json
+</code></pre>
+<p>如下所示，使用windows举例</p>
+<pre><code class="language-bash">PS G:\keycloak11\bin&gt; .\kcadm config credentials --server http://localhost:8080/auth --realm master --user admin        Logging into http://localhost:8080/auth as user admin of realm master
+Enter password: admin
+
+PS G:\keycloak11\bin&gt; .\kcadm create realms -s realm=demorealm -s enabled=true -o
+
+PS G:\keycloak11\bin&gt; .\kcadm create clients -r demorealm -s clientId=my_client -s 'redirectUris=[\&quot;http://localhost:8980/myapp/*\&quot;]' -i &gt; clientid.txt
+PS G:\keycloak11\bin&gt; set /p CID=&lt;clientid.txt
+
+PS G:\keycloak11\bin&gt; .\kcadm get http://localhost:8080/auth/admin/realms/demorealm/clients/8aba2b1f-4587-43ba-8f51-d2e75db5f65d/installation/providers/keycloak-oidc-keycloak-json
+{
+  &quot;realm&quot; : &quot;demorealm&quot;,
+  &quot;auth-server-url&quot; : &quot;http://localhost:8080/auth/&quot;,
+  &quot;ssl-required&quot; : &quot;external&quot;,
+  &quot;resource&quot; : &quot;my_client&quot;,
+  &quot;credentials&quot; : {
+    &quot;secret&quot; : &quot;54b8027b-6d7f-4e2b-9b6a-5c1e85b685fa&quot;
+  },
+  &quot;confidential-port&quot; : 0
+}
+PS G:\keycloak11\bin&gt;
+</code></pre>
+<p>基本操作：</p>
+<pre><code class="language-bash">$ kcadm.sh create ENDPOINT [ARGUMENTS]
+$ kcadm.sh get ENDPOINT [ARGUMENTS]
+$ kcadm.sh update ENDPOINT [ARGUMENTS]
+$ kcadm.sh delete ENDPOINT [ARGUMENTS]
+</code></pre>
+<p>ENDPOINT is a target resource URI and can either be absolute (starting with <code>http:</code> or <code>https:</code>) or relative, used to compose an absolute URL of the following format:</p>
+<pre><code>SERVER_URI/admin/realms/REALM/ENDPOINT
+</code></pre>
+<p>For example, if you authenticate against the server http://localhost:8080/auth and realm is <code>master</code>, then using <code>users</code> as ENDPOINT results in the resource URL http://localhost:8080/auth/admin/realms/master/users.</p>
+<p>If you set ENDPOINT to <code>clients</code>, the effective resource URI would be http://localhost:8080/auth/admin/realms/master/clients.</p>
+<p>角色和用户的管理等也能用kcadm命令来完成。</p>
+<h3 id="2如何退出">2.如何退出</h3>
+<pre><code class="language-java">HttpServletRequest.logout()
+</code></pre>
+<h3 id="3更暴力的接入方式keycloak-proxy已停止维护">3.更暴力的接入方式KeyCloak Proxy（已停止维护）</h3>
+<p>把KeyCloak作为一个proxy来使用，免去修改现有代码。</p>
+<p><a href="https://hub.docker.com/r/jboss/keycloak-proxy/">https://hub.docker.com/r/jboss/keycloak-proxy/</a>  这里有简单的使用方式说明。这种方式只能代理一个client。</p>
+<blockquote>
+<p><strong>This image is deprecated as the Java based Proxy will be replaced by a new Go based implementation soon.</strong></p></blockquote>
+<p>keycloak-proxy在2018年已停止维护，用Golang实现的继任者louketo-proxy也已在2020年停止更新维护。</p>
+<p>官方文档已不推荐使用这种方式，相关文档已移除。</p>
+<p>ouketo-proxy停止更新和维护，官网说明：https://www.keycloak.org/2020/08/sunsetting-louketo-project.adoc</p>
+<p>官网提供的一种类似替代方案：https://github.com/oauth2-proxy/oauth2-proxy （Golang实现，未验证）</p>
+<h2 id="参考">参考</h2>
+<p><a href="https://www.keycloak.org/docs/latest/securing_apps/#_jetty9_adapter">https://www.keycloak.org/docs/latest/securing_apps/#_jetty9_adapter</a></p>
+<p><a href="https://stackoverflow.com/questions/22188285/does-embedded-jetty-have-the-ability-to-set-the-init-params-of-a-filter">https://stackoverflow.com/questions/22188285/does-embedded-jetty-have-the-ability-to-set-the-init-params-of-a-filter</a></p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

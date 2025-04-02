@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>FireJava输出Java服务器端调试日志到控制台 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="  针对最新火狐浏览器50&#43;以上版本的firebug协议，类似FirePHP，但是FirePHP已经很久不更新，并且对最新的浏览器也已失效。
+
+这个在Firebug之上运行的扩展，结合一个服务器端的库，就可以让你的PHP代码向浏览器发送调试信息，该信息以HTTP响应头（HTTP headers）的方式编码。经过设置，你可以像在Firebug控制台调试JavaScript代码一样得到PHP脚本的警告和错误提示。下面我们来看看具体步骤。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/firejava%E8%BE%93%E5%87%BAjava%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%AB%AF%E8%B0%83%E8%AF%95%E6%97%A5%E5%BF%97%E5%88%B0%E6%8E%A7%E5%88%B6%E5%8F%B0/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="FireJava输出Java服务器端调试日志到控制台">
+  <meta property="og:description" content=" 针对最新火狐浏览器50&#43;以上版本的firebug协议，类似FirePHP，但是FirePHP已经很久不更新，并且对最新的浏览器也已失效。
+这个在Firebug之上运行的扩展，结合一个服务器端的库，就可以让你的PHP代码向浏览器发送调试信息，该信息以HTTP响应头（HTTP headers）的方式编码。经过设置，你可以像在Firebug控制台调试JavaScript代码一样得到PHP脚本的警告和错误提示。下面我们来看看具体步骤。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2018-01-10T20:21:52+00:00">
+    <meta property="article:modified_time" content="2018-01-10T20:21:52+00:00">
+    <meta property="article:tag" content="Java">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="FireJava输出Java服务器端调试日志到控制台">
+  <meta name="twitter:description" content=" 针对最新火狐浏览器50&#43;以上版本的firebug协议，类似FirePHP，但是FirePHP已经很久不更新，并且对最新的浏览器也已失效。
+这个在Firebug之上运行的扩展，结合一个服务器端的库，就可以让你的PHP代码向浏览器发送调试信息，该信息以HTTP响应头（HTTP headers）的方式编码。经过设置，你可以像在Firebug控制台调试JavaScript代码一样得到PHP脚本的警告和错误提示。下面我们来看看具体步骤。">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">FireJava输出Java服务器端调试日志到控制台</h1>
+          <div class="meta">Posted on 2018年1月10日</div>
+        </div>
+        
+        <section class="body">
+          <p>  针对最新火狐浏览器50+以上版本的firebug协议，类似FirePHP，但是FirePHP已经很久不更新，并且对最新的浏览器也已失效。</p>
+<blockquote>
+<p>这个在Firebug之上运行的扩展，结合一个服务器端的库，就可以让你的PHP代码向浏览器发送调试信息，该信息以HTTP响应头（HTTP headers）的方式编码。经过设置，你可以像在Firebug控制台调试JavaScript代码一样得到PHP脚本的警告和错误提示。下面我们来看看具体步骤。</p></blockquote>
+<p>直接上代码</p>
+<pre><code class="language-java">import com.alibaba.fastjson.JSON;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+/**
+ * @version V1.0
+ * @Description:直接输出服务器端调试日志到控制台，简易版本。
+ * @date 2017/6/13 16:51
+ */
+public class DebugTool {
+    public final String VERSION = &quot;2.0.j1&quot;;
+    public final String HEADER_NAME = &quot;X-ChromeLogger-Data&quot;;
+
+    protected Map&lt;String, Object&gt; console = new HashMap&lt;&gt;();
+    private String response=&quot;&quot;;
+
+    public DebugTool() {
+        console.put(&quot;version&quot;, VERSION);
+        console.put(&quot;columns&quot;, new String[]{&quot;log&quot;, &quot;backtrace&quot;, &quot;type&quot;});
+        console.put(&quot;rows&quot;, new ArrayList&lt;Objects&gt;());
+        console.put(&quot;request_uri&quot;, this.getClass().getName());
+    }
+
+    public DebugTool(Class cls) {
+        this();
+        console.put(&quot;request_uri&quot;, cls.getName());
+    }
+
+    public void log(Object o) {
+        log(o,&quot;&quot;);
+    }
+
+    public void info(Object o) {
+        log(o,&quot;info&quot;);
+    }
+
+    public void warn(Object o) {
+        log(o,&quot;warn&quot;);
+    }
+
+    public void error(Object o) {
+        log(o,&quot;error&quot;);
+    }
+
+    public void log(Object o,String type) {
+        Object[] info;
+        if(o instanceof Map){
+            info = new Object[]{o};
+        }else {
+            info = new Object[]{o.toString()};
+        }
+        Object[] obj = new Object[]{info, console.get(&quot;request_uri&quot;), type};
+        ArrayList&lt;Object&gt; rows = (ArrayList&lt;Object&gt;) console.get(&quot;rows&quot;);
+        rows.add(obj);
+        console.put(&quot;rows&quot;, rows);
+    }
+
+    public String getResponse(){
+        String json = JSON.toJSONString(console);
+        json = Base64.encodeToString(json);
+        return json;
+    }
+}
+</code></pre>
+<p>使用方法：</p>
+<pre><code class="language-java">DebugTool debug=new DebugTool(this.getClass());
+tool.log(&quot;hello 八阿哥&quot;);
+Map hash=new HashMap();
+hash.put(&quot;25&quot;,&quot;张三&quot;);
+hash.put(&quot;19&quot;,&quot;李四&quot;);
+tool.warn(hash);
+response.add(DebugTool.HEADER_NAME,tool.response);
+</code></pre>
+<p>仅对最新版Firefox有效。新版chrome有自己的debug协议（使用websocket）。有趣的是，这本来是一个chrome浏览器支持的协议，后来chrome放弃了，而Firefox拿过来了。
+参考：<a href="https://craig.is/writing/chrome-logger">https://craig.is/writing/chrome-logger</a></p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

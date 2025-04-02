@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Kde桌面下自带应用无法输入中文 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="​      这个问题纠结我快一年了。某次manjaro升级后，我的manjaro在系统自带应用上如konsole,kate,Yakuake上都不能切换输入法（目测系统自带的软件都不能），鼠标放键盘图标上提示“无输入窗口”。但是浏览器和其他软件是可以的。这个问题不是太影响使用，就忍了很久，大不了其他地方写好了再复制到kate里，但是就好像衣服上落沾了一坨黄泥，始终感觉不爽，每隔一两个月就要尝试解决一次，始终无果。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/kde%E6%A1%8C%E9%9D%A2%E4%B8%8B%E9%83%A8%E5%88%86%E5%BA%94%E7%94%A8%E6%97%A0%E6%B3%95%E8%BE%93%E5%85%A5%E4%B8%AD%E6%96%87/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="Kde桌面下自带应用无法输入中文">
+  <meta property="og:description" content="​ 这个问题纠结我快一年了。某次manjaro升级后，我的manjaro在系统自带应用上如konsole,kate,Yakuake上都不能切换输入法（目测系统自带的软件都不能），鼠标放键盘图标上提示“无输入窗口”。但是浏览器和其他软件是可以的。这个问题不是太影响使用，就忍了很久，大不了其他地方写好了再复制到kate里，但是就好像衣服上落沾了一坨黄泥，始终感觉不爽，每隔一两个月就要尝试解决一次，始终无果。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2020-03-07T21:07:54+08:00">
+    <meta property="article:modified_time" content="2020-03-07T21:07:54+08:00">
+    <meta property="article:tag" content="Linux">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="Kde桌面下自带应用无法输入中文">
+  <meta name="twitter:description" content="​ 这个问题纠结我快一年了。某次manjaro升级后，我的manjaro在系统自带应用上如konsole,kate,Yakuake上都不能切换输入法（目测系统自带的软件都不能），鼠标放键盘图标上提示“无输入窗口”。但是浏览器和其他软件是可以的。这个问题不是太影响使用，就忍了很久，大不了其他地方写好了再复制到kate里，但是就好像衣服上落沾了一坨黄泥，始终感觉不爽，每隔一两个月就要尝试解决一次，始终无果。">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">Kde桌面下自带应用无法输入中文</h1>
+          <div class="meta">Posted on 2020年3月7日</div>
+        </div>
+        
+        <section class="body">
+          <p>​      这个问题纠结我快一年了。某次manjaro升级后，我的manjaro在系统自带应用上如konsole,kate,Yakuake上都不能切换输入法（目测系统自带的软件都不能），鼠标放键盘图标上提示“无输入窗口”。但是浏览器和其他软件是可以的。这个问题不是太影响使用，就忍了很久，大不了其他地方写好了再复制到kate里，但是就好像衣服上落沾了一坨黄泥，始终感觉不爽，每隔一两个月就要尝试解决一次，始终无果。</p>
+<p>尝试过的解决方案有下面几种：</p>
+<ol>
+<li>修改/etc/profile</li>
+<li>修改.xprofile</li>
+<li>修改/etc/environment</li>
+<li>更换其他中文输入法</li>
+<li>用fcitx-diagnose诊断配置</li>
+</ol>
+<p>配置文件肯定是正确的，按照网上说的 Linux下输入中文的配置也检查了很多，作为一个有六七年经验的 Linux老司机，怎么可能翻车呢。搜了很多文章，死马当作活马医，一直无解。</p>
+<p>fcitx-diagnose诊断结果如下，然而确认配置了，可为什么就是不认识一直没理解。</p>
+<pre><code class="language-bash">&quot; 而不是 &quot;fcitx&quot;. 请检查您是否在某个初始化文件中错误的设置了它的值.**
+    **您可能会在 qt4 程序中使用 fcitx 时遇到问题.**
+
+    **请使用您发行版提供的工具将环境变量 QT_IM_MODULE 设为 &quot;fcitx&quot; 或者将 `export QT_IM_MODULE=fcitx` 添加到您的 `~/.xprofile` 中. 参见 [输入法相关的环境变量: QT_IM_MODULE](http://fcitx-im.org/wiki/Input_method_related_environment_variables/zh-cn#QT_IM_MODULE).**
+
+gtk - `${GTK_IM_MODULE}`:
+
+&quot; 而不是 &quot;fcitx&quot;. 请检查您是否在某个初始化文件中错误的设置了它的值.**
+    **您可能会在 gtk 程序中使用 fcitx 时遇到问题.**
+
+    **请使用您发行版提供的工具将环境变量 GTK_IM_MODULE 设为 &quot;fcitx&quot; 或者将 `export GTK_IM_MODULE=fcitx` 添加到您的 `~/.xprofile` 中. 参见 [输入法相关的环境变量: GTK_IM_MODULE](http://fcitx-im.org/wiki/Input_method_related_environment_variables/zh-cn#GTK_IM_MODULE).**
+
+</code></pre>
+<p>直到今天，偶尔搜到了<a href="https://bbs.archlinuxcn.org/viewtopic.php?id=10048">这篇文章</a>，出现的问题和我遇到的一模一样。原来是我的.xprofile里环境变量 XMODIFIERS、QT_IM_MODULE、GTK_IM_MODULE 值的末尾有一个回车符。也就是说，设置这些环境变量的那个文件错误地使用了 DOS / Windows 的换行符。</p>
+<p>解决方案就很简单了，在 Vim 中打开并执行 :set ff=unix，然后保存并退出 :wq。</p>
+<p>重新注销，解决了。</p>
+<p>然后想起来，快一年前更新系统，结果挂了。这是唯一一次更新 manjaro滚挂了（这是manjaro软件源的一次bug 导致），修复系统后用了百度复制来的代码，竟然疏忽了。</p>
+<p>要是没那篇文章，真不知何年何月能解决。放狗一搜，还有许许多多受害者遇到这种情况至今没有解决，甚至在manjaro官网提问也无解。所以记录下，希望更多人能看到。</p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/linux">linux</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

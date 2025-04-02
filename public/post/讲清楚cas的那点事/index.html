@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>讲清楚CAS的那点事 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="互联网低潮，老是会看到别人发面试经验，看到很多人谈乐观锁，谈CAS，但是都没有说清楚。忍不住叨叨几句。
+那什么是乐观锁呢，比较书面的定义是 “它假设多用户并发的事务在处理时不会彼此互相影响，各事务能够在不产生锁的情况下处理各自影响的那部分数据。在提交数据更新之前，每个事务会先检查在该事务读取数据后，有没有其他事务又修改了该数据。如果其他事务有更新的话，正在提交的事务会进行回滚。”，在多线程中则指对于数据冲突保持一种乐观态度，操作数据时不会对操作的数据进行加锁（这使得多个任务可以并行的对数据进行操作），只有到数据提交的时候才通过一种机制来验证数据是否存在冲突。在Java中，是通过CAS来实现乐观锁的。" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/%E8%AE%B2%E6%B8%85%E6%A5%9Acas%E7%9A%84%E9%82%A3%E7%82%B9%E4%BA%8B/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="讲清楚CAS的那点事">
+  <meta property="og:description" content="互联网低潮，老是会看到别人发面试经验，看到很多人谈乐观锁，谈CAS，但是都没有说清楚。忍不住叨叨几句。
+那什么是乐观锁呢，比较书面的定义是 “它假设多用户并发的事务在处理时不会彼此互相影响，各事务能够在不产生锁的情况下处理各自影响的那部分数据。在提交数据更新之前，每个事务会先检查在该事务读取数据后，有没有其他事务又修改了该数据。如果其他事务有更新的话，正在提交的事务会进行回滚。”，在多线程中则指对于数据冲突保持一种乐观态度，操作数据时不会对操作的数据进行加锁（这使得多个任务可以并行的对数据进行操作），只有到数据提交的时候才通过一种机制来验证数据是否存在冲突。在Java中，是通过CAS来实现乐观锁的。">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2019-07-16T21:54:09+08:00">
+    <meta property="article:modified_time" content="2019-07-16T21:54:09+08:00">
+    <meta property="article:tag" content="Java">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="讲清楚CAS的那点事">
+  <meta name="twitter:description" content="互联网低潮，老是会看到别人发面试经验，看到很多人谈乐观锁，谈CAS，但是都没有说清楚。忍不住叨叨几句。
+那什么是乐观锁呢，比较书面的定义是 “它假设多用户并发的事务在处理时不会彼此互相影响，各事务能够在不产生锁的情况下处理各自影响的那部分数据。在提交数据更新之前，每个事务会先检查在该事务读取数据后，有没有其他事务又修改了该数据。如果其他事务有更新的话，正在提交的事务会进行回滚。”，在多线程中则指对于数据冲突保持一种乐观态度，操作数据时不会对操作的数据进行加锁（这使得多个任务可以并行的对数据进行操作），只有到数据提交的时候才通过一种机制来验证数据是否存在冲突。在Java中，是通过CAS来实现乐观锁的。">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">讲清楚CAS的那点事</h1>
+          <div class="meta">Posted on 2019年7月16日</div>
+        </div>
+        
+        <section class="body">
+          <p>互联网低潮，老是会看到别人发面试经验，看到很多人谈乐观锁，谈CAS，但是都没有说清楚。忍不住叨叨几句。</p>
+<p>那什么是乐观锁呢，比较书面的定义是 “它假设多用户并发的事务在处理时不会彼此互相影响，各事务能够在不产生锁的情况下处理各自影响的那部分数据。在提交数据更新之前，每个事务会先检查在该事务读取数据后，有没有其他事务又修改了该数据。如果其他事务有更新的话，正在提交的事务会进行回滚。”，在多线程中则指对于数据冲突保持一种乐观态度，操作数据时不会对操作的数据进行加锁（这使得多个任务可以并行的对数据进行操作），只有到数据提交的时候才通过一种机制来验证数据是否存在冲突。在Java中，是通过CAS来实现乐观锁的。</p>
+<p>CAS是英文单词Compare And Swap的缩写，翻译过来就是比较并替换。CAS机制当中使用了3个基本操作数：内存地址V，旧的预期值A，要修改的新值B。</p>
+<p>更新一个变量的时候，只有当变量的预期值A和内存地址V当中的实际值相同时，才会将内存地址V对应的值修改为B。</p>
+<p>CAS比较难于理解的地方就在于V、A、B这三个变量到底代表什么含义，很容易混淆，也不容易讲清楚。单纯看书上的文章会觉得晦涩，我们可以来看个例子。</p>
+<p>举个例子：</p>
+<p>1.在内存地址V当中，存储着值为10的变量</p>
+<p>2.此时线程1想要把变量的值增加1。对线程1来说，旧的预期值A=10，要修改的新值B=11。</p>
+<p>3.在线程1要提交更新之前，另一个线程2抢先一步，把内存地址V中的变量值率先更新成了11。</p>
+<p>4.线程1开始提交更新，首先进行A和地址V的实际值比较（Compare），发现A不等于V的实际值，提交失败。</p>
+<p>5.线程1重新获取内存地址V的当前值，并重新计算想要修改的新值。此时对线程1来说，A=11，B=12。这个重新尝试的过程被称为自旋。</p>
+<p>6.这一次比较幸运，没有其他线程改变地址V的值。线程1进行Compare，发现A和地址V的实际值是相等的，线程1进行Swap，把地址V的值替换为B，也就是12。在这一步，Compare和Swap这个过程是原子的(由操作系统和硬件保证)，比较并更新的过程是不会被其他线程打断的。</p>
+<p>到这里，其实基本说请了CAS的过程，但是CAS的API，还是不够清晰，很多人能够进行到这里，但如果让他实际使用CAS的API时则又没辙了，这里我们通过一个例子来演示CAS的API实际用例。</p>
+<pre><code class="language-java">/**
+ * 使用CAS来获取单例
+ */
+public class CasSingleton {
+    private static  final AtomicReference&lt;CasSingleton&gt; INSTANCE=new AtomicReference&lt;&gt;();
+
+    private CasSingleton(){}
+
+    public static CasSingleton getInstance(){
+        for(;;){
+            CasSingleton singleton=INSTANCE.get();
+            if(null!=singleton){
+                return singleton;
+            }
+            singleton=new CasSingleton();
+            if(INSTANCE.compareAndSet(null,singleton)){
+                return singleton;
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        CasSingleton singleton=getInstance();
+        CasSingleton singleton1=getInstance();
+        System.out.println(singleton);
+        System.out.println(singleton1);
+    }
+}
+</code></pre>
+<p>这里使用CAS来实现单例，我们对照着compareAndSet的API来看看</p>
+<pre><code>/**
+     * Atomically sets the value to {@code newValue}
+     * if the current value {@code == expectedValue},
+     * with memory effects as specified by {@link VarHandle#compareAndSet}.
+     *
+     * @param expectedValue the expected value
+     * @param newValue the new value
+     * @return {@code true} if successful. False return indicates that
+     * the actual value was not equal to the expected value.
+     */
+    public final boolean compareAndSet(V expectedValue, V newValue) {
+        return VALUE.compareAndSet(this, expectedValue, newValue);
+    }
+</code></pre>
+<p>上面CAS实现单例的代码中，第一个参数null就是A，第二个参数singleton就是B，调用者INSTANCE就是V。在调用compareAndSet的同时，已经完成了更新的过程，并且返回了更新与否的结果。这样就比较好理解了（虽然CAS能实现单例，但在这个场景下并不是最佳方案，为什么，大家可以思考下）。</p>
+<p>现在再来看看AtomicInteger的源码，能理解++i这块的实现了吗？</p>
+<pre><code>public final int incrementAndGet() {
+    for (;;) {
+        int current = get();
+        int next = current + 1;
+        if (compareAndSet(current, next))
+            return next;
+    }
+}
+</code></pre>
+<p>至于什么ABA问题和CPU底层实现，则不是本文重点。</p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

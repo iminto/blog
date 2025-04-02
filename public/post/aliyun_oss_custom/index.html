@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>折腾阿里云OSS的API - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="  这两天想给博客做个插件,利用阿里云的OSS来存储文件.但阿里的文档和代码都烂的超乎想象,要么代码老旧不堪,要么跟小脚老太一样引入一坨依赖,想必这块是外包团队做的吧,或者阿里非核心业务员的技术水平也就这样吧." />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/aliyun_oss_custom/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="折腾阿里云OSS的API">
+  <meta property="og:description" content=" 这两天想给博客做个插件,利用阿里云的OSS来存储文件.但阿里的文档和代码都烂的超乎想象,要么代码老旧不堪,要么跟小脚老太一样引入一坨依赖,想必这块是外包团队做的吧,或者阿里非核心业务员的技术水平也就这样吧.">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2018-01-25T23:26:44+00:00">
+    <meta property="article:modified_time" content="2018-01-25T23:26:44+00:00">
+    <meta property="article:tag" content="Java">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="折腾阿里云OSS的API">
+  <meta name="twitter:description" content=" 这两天想给博客做个插件,利用阿里云的OSS来存储文件.但阿里的文档和代码都烂的超乎想象,要么代码老旧不堪,要么跟小脚老太一样引入一坨依赖,想必这块是外包团队做的吧,或者阿里非核心业务员的技术水平也就这样吧.">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">折腾阿里云OSS的API</h1>
+          <div class="meta">Posted on 2018年1月25日</div>
+        </div>
+        
+        <section class="body">
+          <p>  这两天想给博客做个插件,利用阿里云的OSS来存储文件.但阿里的文档和代码都烂的超乎想象,要么代码老旧不堪,要么跟小脚老太一样引入一坨依赖,想必这块是外包团队做的吧,或者阿里非核心业务员的技术水平也就这样吧.</p>
+<p>  所以想绕开阿里云官方提供的代码自己整一套OSS的API,先跑一个上传文件的demo,能在客户端跑通后再用代码去实现.最简单的方法就是用<a href="https://github.com/wiztools/rest-client">REST client</a>来模拟.折腾了一下,还挺费劲,记录下折腾过程</p>
+<p>  先来试试上传文件,选择PUT方法,要请求的URL为http://baicaidoc.oss-cn-shenzhen.aliyuncs.com/image/small/mm1.jpg
+,添加以下header,header头需要包含哪些内容可以看<a href="https://help.aliyun.com/document_detail/31955.html">这里</a></p>
+<pre><code class="language-js">Authorization:OSS
+LTAIxkX6Qj2OuMZ6:tLZ7nYYP/hkCJbG/6gkOJ7Mi4E=
+Date:Thu, 25 Jan 2018 15:20:39 GMT
+Content-Disposition:attachment;filename=ivy.jpg
+Host:baicaidoc.oss-cn-shenzhen.aliyuncs.com
+Content-Encoding:utf-8
+</code></pre>
+<p>然后在body里添加file body.
+至于header头怎么写和Authorization字段计算的方法,文档里说的比较清晰了<a href="https://help.aliyun.com/document_detail/31951.html">https://help.aliyun.com/document_detail/31951.html</a>.
+  尤其需要注意的是Date必须是GMT格式,这个对Java来说也好办,不过要注意时区的问题,GMT时间比东八区慢了8个小时.还有Host需要带上bucket,这在早期是不需要的(早期带上反而会报错SignatureDoesNotMatch)
+  另外就是这个Authorization字段的签名需要注意,base64需要处理byte[]数组,而不是字符串.所以用网上的在线验证工具是验证不了的.
+Java版的签名代码如下:</p>
+<pre><code class="language-java">import bai.tool.Base64;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+
+/**
+ * Hello world!
+ *
+ */
+public class App
+{
+    public static byte[] hamcsha1(byte[] data, byte[] key)
+    {
+        try {
+            SecretKeySpec signingKey = new SecretKeySpec(key, &quot;HmacSHA1&quot;);
+            Mac mac = Mac.getInstance(&quot;HmacSHA1&quot;);
+            mac.init(signingKey);
+            return mac.doFinal(data);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static void main( String[] args )  {
+        String toSign=&quot;PUT\n&quot; +
+                &quot;\n&quot; +
+                &quot;image/jpeg; charset=UTF-8\n&quot; +
+                &quot;Thu, 25 Jan 2018 15:20:39 GMT\n&quot; +
+                &quot;/baicaidoc/image/small/mm1.jpg&quot;;
+        String accessKey=&quot;OrzrzxIsfpFjA7S7yk0Lwy8Bw21TLhquhboiip56&quot;;
+        byte[] hm=hamcsha1(toSign.getBytes(),accessKey.getBytes());
+        System.out.println(&quot;OSS LTAIxkX6Qj2OuMZ6:&quot;+Base64.encodeToString(hm));
+    }
+}
+</code></pre>
+<p>  客户端能跑通就好办了，最后是代码，使用HttpURLConnection来实现PUT上传代码。阿里云的OSS SDK太重了，而一般常用的就上传和删除功能</p>
+<pre><code class="language-java">import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+import java.util.TimeZone;
+
+public class OSSUpload {
+
+    public String httpUrlConnectionPut(String fileName) {
+        String result = &quot;&quot;;
+        URL url = null;
+        String httpUrl = &quot;http://baicaidoc.oss-cn-shenzhen.aliyuncs.com/image/small/test.jpg&quot;;
+        try {
+            url = new URL(httpUrl);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        if (url != null) {
+            HttpURLConnection urlConn;
+           try {
+                urlConn = (HttpURLConnection) url.openConnection();
+                File file = new File(fileName);
+                urlConn.setRequestProperty(&quot;content-type&quot;, &quot;image/jpeg; charset=UTF-8&quot;);
+                urlConn.setDoOutput(true);// http正文内，因此需要设为true, 默认情况下是false;
+                urlConn.setDoInput(true);// 设置是否从httpUrlConnection读入，默认情况下是true;
+                urlConn.setConnectTimeout(15 * 1000);
+                urlConn.setRequestProperty(&quot;User-Agent&quot;, &quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.84 Safari/537.36&quot;);
+                //设置请求方式为 PUT
+                urlConn.setRequestMethod(&quot;PUT&quot;);             urlConn.setRequestProperty(&quot;Connection&quot;, &quot;Keep-Alive&quot;);
+
+                SimpleDateFormat sdf = new SimpleDateFormat(&quot;EEE, dd MMM yyyy HH:mm:ss 'GMT'&quot;, Locale.US);
+                sdf.setTimeZone(TimeZone.getTimeZone(&quot;GMT&quot;));
+                urlConn.setRequestProperty(&quot;Host&quot;, &quot;baicaidoc.oss-cn-shenzhen.aliyuncs.com&quot;);
+                urlConn.setRequestProperty(&quot;Content-Encoding&quot;, &quot;UTF-8&quot;);
+                urlConn.setRequestProperty(&quot;Date&quot;, sdf.format(new Date()));
+                urlConn.setRequestProperty(&quot;Content-Length&quot;, String.valueOf(file.length()));
+                urlConn.setRequestProperty(&quot;Authorization&quot;, &quot;OSS LTAIxk223j2OuMZ6:tLZ74YYP/hkCJbG/6gkOJ7Mi4E=&quot;);
+                DataOutputStream dos = new DataOutputStream(urlConn.getOutputStream());
+                //写入请求参数
+
+               try {
+                   InputStream in = new FileInputStream(file);
+                   int bytes = 0;
+                   byte[] bufferOut = new byte[4096];
+                   while ((bytes = in.read(bufferOut)) != -1) {
+                       dos.write(bufferOut, 0, bytes);
+                   }
+                   dos.flush();
+                   dos.close();
+                   InputStream is = urlConn.getInputStream();
+                   int ch;
+                   StringBuffer b = new StringBuffer();
+                   while ((ch = is.read()) != -1) {
+                       b.append((char) ch);
+                   }
+                   System.out.println(&quot;result:&quot; + b.toString());
+               }catch (IOException e){
+                   e.printStackTrace();
+                   InputStream is=urlConn.getErrorStream();
+                   int ch;
+                   StringBuffer b = new StringBuffer();
+                   while ((ch = is.read()) != -1) {
+                       b.append((char) ch);
+                   }
+                   System.out.println(&quot;error result:&quot;+b.toString());
+               }
+                urlConn.disconnect();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }finally {
+
+           }
+        }
+
+        return result;
+    }
+
+    public static void main(String[] args) {
+        OSSUpload oss = new OSSUpload();        oss.httpUrlConnectionPut(&quot;/home/chen/Desktop/tmp/sd.png&quot;);
+    }
+}
+</code></pre>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

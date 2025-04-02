@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>Ambari里自定义资源模块的实现 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Ambari里主机，集群，用户等等都视为一种资源，对它们的增删改查就是对资源的增删改查。
+了解实现Ambari里增加一个资源的流程，就更方便修改Ambari的实现。
+1.新建控制器层
+ambari的控制器层在service包里" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/ambari%E9%87%8C%E8%87%AA%E5%AE%9A%E4%B9%89%E8%B5%84%E6%BA%90%E6%A8%A1%E5%9D%97%E7%9A%84%E5%AE%9E%E7%8E%B0/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="Ambari里自定义资源模块的实现">
+  <meta property="og:description" content="Ambari里主机，集群，用户等等都视为一种资源，对它们的增删改查就是对资源的增删改查。
+了解实现Ambari里增加一个资源的流程，就更方便修改Ambari的实现。
+1.新建控制器层 ambari的控制器层在service包里">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2020-10-13T09:52:43+08:00">
+    <meta property="article:modified_time" content="2020-10-13T09:52:43+08:00">
+    <meta property="article:tag" content="Java">
+    <meta property="article:tag" content="大数据">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="Ambari里自定义资源模块的实现">
+  <meta name="twitter:description" content="Ambari里主机，集群，用户等等都视为一种资源，对它们的增删改查就是对资源的增删改查。
+了解实现Ambari里增加一个资源的流程，就更方便修改Ambari的实现。
+1.新建控制器层 ambari的控制器层在service包里">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">Ambari里自定义资源模块的实现</h1>
+          <div class="meta">Posted on 2020年10月13日</div>
+        </div>
+        
+        <section class="body">
+          <p>Ambari里主机，集群，用户等等都视为一种资源，对它们的增删改查就是对资源的增删改查。</p>
+<p>了解实现Ambari里增加一个资源的流程，就更方便修改Ambari的实现。</p>
+<h3 id="1新建控制器层">1.新建控制器层</h3>
+<p>ambari的控制器层在service包里</p>
+<pre><code class="language-java">package org.apache.ambari.server.api.services.dataspace;
+
+import io.swagger.annotations.Api;
+import org.apache.ambari.server.api.resources.ResourceInstance;
+import org.apache.ambari.server.api.services.BaseService;
+import org.apache.ambari.server.api.services.Request;
+import org.apache.ambari.server.controller.spi.Resource;
+
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
+import java.util.Collections;
+
+@Path(&quot;/hdfs/&quot;)
+@Api(value = &quot;Hdfss&quot;, description = &quot;Endpoint for user specific operations&quot;)
+public class HdfsService extends BaseService {
+
+    @GET//查询全部
+    @Produces(&quot;text/plain&quot;)
+    public Response getHdfses(String body, @Context HttpHeaders headers, @Context UriInfo ui) {
+        return handleRequest(headers, body, ui, Request.Type.GET, createHdfsResource(null));
+    }
+    
+    @GET
+    @Path(&quot;{path}&quot;)//查询单个
+    @Produces(&quot;text/plain&quot;)
+    public Response getHdfs(String body, @Context HttpHeaders headers, @Context UriInfo ui) {
+        return handleRequest(headers, body, ui, Request.Type.GET, createHdfsResource(path));
+    }
+
+    private ResourceInstance createHdfsResource(String path) {
+        return createResource(Resource.Type.Hdfs,
+                Collections.singletonMap(Resource.Type.Hdfs, path));
+
+    }
+
+}
+</code></pre>
+<p>继承BaseService。这里定义访问路径和参数。serivice的方法参数上是看不出VO的类型的。复杂的控制器，可以在一个service里调用另外一个service.</p>
+<p>访问参数可以封装成对象，需要新建一个XXXRequest对象，比如</p>
+<pre><code class="language-java">package org.apache.ambari.server.controller;
+
+public class HdfsRequest {
+
+    private Integer id;
+    private String path;
+    private Integer size;
+
+   //getter,setter略
+}
+</code></pre>
+<p>这里的xxxRequest是不会像springboot一样自动封装成对象的。</p>
+<h3 id="2继承resourceprovide实现具体的handlerequest方法">2.继承ResourceProvide，实现具体的handleRequest方法</h3>
+<pre><code class="language-java">package org.apache.ambari.server.controller.internal;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+import org.apache.ambari.server.controller.AmbariManagementController;
+import org.apache.ambari.server.controller.HdfsRequest;
+import org.apache.ambari.server.controller.spi.Predicate;
+import org.apache.ambari.server.controller.spi.Request;
+import org.apache.ambari.server.controller.spi.Resource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+public class HdfsResourceProvider extends AbstractControllerResourceProvider{
+    private static final Logger LOG = LoggerFactory.getLogger(HdfsResourceProvider.class);
+
+    public static final String HDFS_RESOURCE_CATEGORY=&quot;Hdfses&quot;;
+
+    public static final String HDFS_ID_PROPERTY_ID =&quot;hdfs_id&quot;;
+    public static final String HDFS_PATH_PROPERTY_ID =&quot;hdfs_path&quot;;
+    public static final String HDFS_SIZE_PROPERTY_ID =&quot;hdfs_size&quot;;
+
+    public static final String HDFS_RESOURCE_HDFS_ID_PROPERTY_ID =HDFS_RESOURCE_CATEGORY+&quot;/&quot;+HDFS_ID_PROPERTY_ID;
+    public static final String HDFS_RESOURCE_HDFS_PATH_PROPERTY_ID =HDFS_RESOURCE_CATEGORY+&quot;/&quot;+HDFS_PATH_PROPERTY_ID;
+    public static final String HDFS_RESOURCE_HDFS_SIZE_PROPERTY_ID =HDFS_RESOURCE_CATEGORY+&quot;/&quot;+HDFS_SIZE_PROPERTY_ID;
+
+    private static Map&lt;Resource.Type, String&gt; keyPropertyIds = ImmutableMap.&lt;Resource.Type, String&gt;builder()
+            .put(Resource.Type.Hdfs, HDFS_RESOURCE_HDFS_ID_PROPERTY_ID)
+            .build();
+
+    private static Set&lt;String&gt; propertyIds = Sets.newHashSet(
+            HDFS_RESOURCE_HDFS_ID_PROPERTY_ID,
+            HDFS_RESOURCE_HDFS_PATH_PROPERTY_ID,
+            HDFS_RESOURCE_HDFS_SIZE_PROPERTY_ID
+    );
+
+    public static void init(){
+        //注入操作在此
+    }
+
+     HdfsResourceProvider(AmbariManagementController managementController) {
+        super(Resource.Type.Hdfs, propertyIds, keyPropertyIds, managementController);
+    }
+
+    @Override
+    protected Set&lt;Resource&gt; getResourcesAuthorized(Request request, Predicate predicate){
+        Set&lt;String&gt; hdfsIds=getRequestPropertyIds(request,predicate);
+        Set&lt;Resource&gt; resources=new HashSet&lt;&gt;();
+        //查询数据库略
+        for(int i=0;i&lt;3;i++){
+            ResourceImpl resource=new ResourceImpl(Resource.Type.Hdfs);
+            setResourceProperty(resource,HDFS_RESOURCE_HDFS_ID_PROPERTY_ID,i,hdfsIds);
+            setResourceProperty(resource,HDFS_RESOURCE_HDFS_PATH_PROPERTY_ID,&quot;path&quot;+i,hdfsIds);
+            setResourceProperty(resource,HDFS_RESOURCE_HDFS_SIZE_PROPERTY_ID,i*100,hdfsIds);
+            resources.add(resource);
+        }
+        return resources;
+    }
+
+
+    private HdfsRequest getRequest(Map&lt;String,Object&gt; properties){
+        if(properties==null){
+            return new HdfsRequest();
+        }
+        HdfsRequest hdfsRequest=new HdfsRequest();
+        if(properties.get(&quot;HDFS_RESOURCE_HDFS_ID_PROPERTY_ID&quot;)!=null){
+            hdfsRequest.setId(Integer.parseInt(properties.get(&quot;HDFS_RESOURCE_HDFS_ID_PROPERTY_ID&quot;).toString()));
+        }
+        if(properties.get(&quot;HDFS_RESOURCE_HDFS_SIZE_PROPERTY_ID&quot;)!=null){
+            hdfsRequest.setSize(Integer.parseInt(properties.get(&quot;HDFS_RESOURCE_HDFS_SIZE_PROPERTY_ID&quot;).toString()));
+        }
+        hdfsRequest.setPath(properties.get(&quot;HDFS_RESOURCE_HDFS_ID_PROPERTY_ID&quot;).toString());
+        return hdfsRequest;
+    }
+
+     @Override
+    public RequestStatus updateResources(Request request, Predicate predicate){
+        //更新操作略
+        return getRequestStatus(null);
+    }
+
+
+    @Override
+    protected Set&lt;String&gt; getPKPropertyIds() {
+        return new HashSet&lt;&gt;(keyPropertyIds.values());
+    }
+}
+
+</code></pre>
+<p>这里面定义了各种参数字段和参数完整性校验，对应前端传值，实现CRUD逻辑，调用dao等。ResourceProvider和Request类的作用有交叉。</p>
+<p>getRequest()用于从request Map里获取字符串参数组装成对象。</p>
+<p>同时需要在AbstractControllerResourceProvider里增加一条记录</p>
+<pre><code class="language-java"> case AlertTarget:
+        return resourceProviderFactory.getAlertTargetResourceProvider();
+  case ViewInstance:
+        return resourceProviderFactory.getViewInstanceResourceProvider();
+ case Hdfs:
+        return new HdfsResourceProvider(managementController);
+default:  throw new IllegalArgumentException(&quot;Unknown type &quot; + type);
+</code></pre>
+<h3 id="3实现resourcedefinition">3.实现ResourceDefinition</h3>
+<pre><code class="language-java">package org.apache.ambari.server.api.resources;
+
+import org.apache.ambari.server.controller.spi.Resource;
+
+import java.util.HashSet;
+import java.util.Set;
+
+public class HdfsResourceDefinition extends BaseResourceDefinition {
+    {
+    }
+
+    /**
+     * Constructor.
+     *
+     * @param resourceType resource type
+     */
+    public HdfsResourceDefinition() {
+        super(Resource.Type.Hdfs);
+    }
+
+    /**
+     * Obtain the plural name of the resource.
+     *
+     * @return the plural name of the resource
+     */
+    @Override
+    public String getPluralName() {
+        return &quot;hdfses&quot;;
+    }
+
+    /**
+     * Obtain the singular name of the resource.
+     *
+     * @return the singular name of the resource
+     */
+    @Override
+    public String getSingularName() {
+        return &quot;hdfs&quot;;
+    }
+
+    @Override
+    public Set&lt;SubResourceDefinition&gt; getSubResourceDefinitions() {
+        final Set&lt;SubResourceDefinition&gt; subResourceDefinitions = new HashSet&lt;&gt;();
+        subResourceDefinitions.add(new SubResourceDefinition(Resource.Type.Hdfs));
+        return subResourceDefinitions;
+    }
+}
+</code></pre>
+<p>这里跟权限应该就有了关系。</p>
+<p>修改ResourceInstanceFactoryImpl，加入自己定义的新类型</p>
+<pre><code class="language-java">case RemoteCluster:
+        resourceDefinition = new RemoteClusterResourceDefinition();
+        break;
+
+ case Hdfs:
+        resourceDefinition = new HdfsResourceDefinition();
+        break;
+
+ default:
+        throw new IllegalArgumentException(&quot;Unsupported resource type: &quot; + type);
+    }
+</code></pre>
+<p>spi包下Resource接口新增一个枚举</p>
+<pre><code class="language-java">package org.apache.ambari.server.controller.spi;
+public interface Resource {
+    enum InternalType {
+    Cluster,
+    Service,
+    Setting,
+</code></pre>
+<h3 id="4数据库相关">4.数据库相关</h3>
+<p>orm包下添加对应的实体类和Dao实现，resource/META-INF下需要手动添加实体类对象全名，比如</p>
+<pre><code class="language-xml">  &lt;persistence-unit name=&quot;ambari-server&quot; transaction-type=&quot;RESOURCE_LOCAL&quot;&gt;
+    &lt;provider&gt;org.eclipse.persistence.jpa.PersistenceProvider&lt;/provider&gt;
+    &lt;class&gt;org.apache.ambari.server.orm.entities.AlertCurrentEntity&lt;/class&gt;
+    &lt;class&gt;org.apache.ambari.server.orm.entities.AlertDefinitionEntity&lt;/class&gt;
+   &lt;/persistence-unit&gt;   
+</code></pre>
+<p>entity举例：</p>
+<pre><code class="language-java">package org.apache.ambari.server.orm.entities;
+
+import javax.persistence.*;
+
+@Entity
+@Table(name = &quot;admin_cluster_host&quot;)
+public class AdminClusterHostEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = &quot;id&quot;, nullable = false, updatable = false)
+    private Integer id;
+    @Column(name = &quot;host&quot;, length = 255)
+    private String host;
+    @Column(name = &quot;cluster&quot;, length = 255)
+    private String cluster;
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getHost() {
+        return host;
+    }
+
+    public void setHost(String host) {
+        this.host = host;
+    }
+
+    public String getCluster() {
+        return cluster;
+    }
+
+    public void setCluster(String cluster) {
+        this.cluster = cluster;
+    }
+}
+
+</code></pre>
+<p>dao举例</p>
+<pre><code class="language-java">package org.apache.ambari.server.orm.dao;
+
+import com.google.inject.Inject;
+import com.google.inject.Provider;
+import com.google.inject.Singleton;
+import org.apache.ambari.server.orm.RequiresSession;
+import org.apache.ambari.server.orm.entities.AdminClusterHostEntity;
+import org.apache.ambari.server.orm.entities.AlertHistoryEntity;
+
+import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
+import javax.persistence.TypedQuery;
+import java.util.Collections;
+import java.util.List;
+
+@Singleton
+public class AdminClusterDAO {
+
+    @Inject
+    private Provider&lt;EntityManager&gt; m_entityManagerProvider;
+
+    @RequiresSession
+    public List&lt;AdminClusterHostEntity&gt; findAll() {
+        TypedQuery&lt;AdminClusterHostEntity&gt; query = m_entityManagerProvider.get().createQuery(
+                &quot;SELECT ac FROM AdminClusterHostEntity ac&quot;, AdminClusterHostEntity.class);
+        try {
+            return query.getResultList();
+        } catch (NoResultException e) {
+            return Collections.emptyList();
+        }
+    }
+}
+
+</code></pre>
+<h3 id="5注入相关">5.注入相关</h3>
+<p>AmbariServer类里也需要相应注入类依赖的对象，一种方式是手动注入，例如：</p>
+<pre><code class="language-java">ermissionResourceProvider.init(injector.getInstance(PermissionDAO.class));
+    ViewPermissionResourceProvider.init(injector.getInstance(PermissionDAO.class));
+    PrivilegeResourceProvider.init(injector.getInstance(PrivilegeDAO.class), injector.getInstance(UserDAO.class),
+        injector.getInstance(GroupDAO.class), injector.getInstance(PrincipalDAO.class),
+        injector.getInstance(PermissionDAO.class), injector.getInstance(ResourceDAO.class));
+</code></pre>
+<p>还有一种方式是注解注入，参考org.apache.ambari.server.controller.ControllerModule</p>
+<p>Ambari注入这块比较迷，比如dao里用到的m_entityManagerProvider对象就不需要手动注入，在它原有的类里使用新加的dao也不需要手动注入。但是有些自己写的ResourceProvider里就需要注入。</p>
+<h3 id="6postman模拟验证">6.postman模拟验证</h3>
+<p>请求</p>
+<pre><code class="language-bash">curl --location --request GET 'http://10.180.210.146:8080/api/v1/hdfs?fields=Hdfses/*' \
+--header 'Content-Typ: application/x-www-form-urlencoded; charset=UTF-8' \
+--header 'Cookie: AMBARISESSIONID=node0qm8s4v2muk61199wsf0jqgmg1.node0' \
+--header 'X-Requested-By: X-Requested-By' \
+--data-raw ''
+</code></pre>
+<p>返回</p>
+<pre><code class="language-json">{
+  &quot;href&quot; : &quot;http://10.180.210.146:8080/api/v1/hdfs?fields=Hdfses/*&quot;,
+  &quot;items&quot; : [
+    {
+      &quot;href&quot; : &quot;http://10.180.210.146:8080/api/v1/hdfs/0&quot;,
+      &quot;Hdfses&quot; : {
+        &quot;hdfs_id&quot; : 0,
+        &quot;hdfs_path&quot; : &quot;path0&quot;,
+        &quot;hdfs_size&quot; : 0
+      }
+    },
+    {
+      &quot;href&quot; : &quot;http://10.180.210.146:8080/api/v1/hdfs/1&quot;,
+      &quot;Hdfses&quot; : {
+        &quot;hdfs_id&quot; : 1,
+        &quot;hdfs_path&quot; : &quot;path1&quot;,
+        &quot;hdfs_size&quot; : 100
+      }
+    },
+    {
+      &quot;href&quot; : &quot;http://10.180.210.146:8080/api/v1/hdfs/2&quot;,
+      &quot;Hdfses&quot; : {
+        &quot;hdfs_id&quot; : 2,
+        &quot;hdfs_path&quot; : &quot;path2&quot;,
+        &quot;hdfs_size&quot; : 200
+      }
+    }
+  ]
+}
+</code></pre>
+<p>请求必须带上?fields=Hdfses/*,表示展示所有字段，否则查询结果是显示不完整的。</p>
+<h3 id="7自由风格controller">7.自由风格Controller</h3>
+<p>也可以抛开ambari的规则，自由使用javax.ws风格。</p>
+<p>但这样就没法使用Ambari内置的权限和谓词风格URL查询了</p>
+<h3 id="8异常和参数校验">8.异常和参数校验</h3>
+<p>参数校验在ResourceProvider里，抛出SystemException即可返回给页面</p>
+<p>权限异常</p>
+<pre><code class="language-java"> if (!AuthorizationHelper.isAuthorized(resourceType, resourceId, RoleAuthorization.SERVICE_RUN_SERVICE_CHECK)) {
+              throw new AuthorizationException(&quot;The authenticated user is not authorized to execute service checks.&quot;);
+            }
+
+</code></pre>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+              <li><a href="/tags/%E5%A4%A7%E6%95%B0%E6%8D%AE">大数据</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>

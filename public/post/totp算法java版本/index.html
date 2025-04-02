@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html><head lang="zh-hans"><script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" data-no-instant defer></script>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge"><title>TOTP算法Java版本 - 白菜不是菜</title><meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="TOTP 概念
+TOTP - Time-based One-time Password Algorithm is an extension of the HMAC-based One Time Password algorithm HOTP to support a time based moving factor.
+TOTP（基于时间的一次性密码算法）是支持时间作为动态因素基于HMAC一次性密码算法的扩展。它是OTP算法的一种
+算法如下:
+TOTP = Truncate(HMAC-SHA-1(K, (T - T0) / X))
+K 共享密钥
+T 时间
+T0 开始计数的时间步长
+X 时间步长" />
+	<meta property="og:image" content=""/>
+	<meta property="og:url" content="http://localhost:1313/post/totp%E7%AE%97%E6%B3%95java%E7%89%88%E6%9C%AC/">
+  <meta property="og:site_name" content="白菜不是菜">
+  <meta property="og:title" content="TOTP算法Java版本">
+  <meta property="og:description" content="TOTP 概念 TOTP - Time-based One-time Password Algorithm is an extension of the HMAC-based One Time Password algorithm HOTP to support a time based moving factor.
+TOTP（基于时间的一次性密码算法）是支持时间作为动态因素基于HMAC一次性密码算法的扩展。它是OTP算法的一种
+算法如下: TOTP = Truncate(HMAC-SHA-1(K, (T - T0) / X))
+K 共享密钥 T 时间 T0 开始计数的时间步长 X 时间步长">
+  <meta property="og:locale" content="zh_cn">
+  <meta property="og:type" content="article">
+    <meta property="article:section" content="post">
+    <meta property="article:published_time" content="2018-01-08T20:21:52+00:00">
+    <meta property="article:modified_time" content="2018-01-08T20:21:52+00:00">
+    <meta property="article:tag" content="Java">
+    <meta property="og:image" content="http://localhost:1313/img/og.png">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:image" content="http://localhost:1313/img/og.png">
+  <meta name="twitter:title" content="TOTP算法Java版本">
+  <meta name="twitter:description" content="TOTP 概念 TOTP - Time-based One-time Password Algorithm is an extension of the HMAC-based One Time Password algorithm HOTP to support a time based moving factor.
+TOTP（基于时间的一次性密码算法）是支持时间作为动态因素基于HMAC一次性密码算法的扩展。它是OTP算法的一种
+算法如下: TOTP = Truncate(HMAC-SHA-1(K, (T - T0) / X))
+K 共享密钥 T 时间 T0 开始计数的时间步长 X 时间步长">
+
+        <link href="http://localhost:1313/css/fonts.2c2227b81b1970a03e760aa2e6121cd01f87c88586803cbb282aa224720a765f.css" rel="stylesheet">
+	
+
+	
+	<link rel="stylesheet" type="text/css" media="screen" href="http://localhost:1313/css/main.6a0f23ea50fd34b46fee262a5a68e17d458c51a2bc99ba1ba018065de6b180c3.css" />
+</head>
+<body>
+        <div class="content"><header>
+	<div class="main">
+		<a href="http://localhost:1313/">白菜不是菜</a>
+	</div>
+	<nav>
+		
+		<a href="/">Home</a>
+		
+		<a href="/post">All posts</a>
+		
+		<a href="/about">About</a>
+		
+		<a href="/tags">Tags</a>
+		
+		<a href="/index.xml">RSS</a>
+		
+		
+	</nav>
+</header>
+
+<main>
+  <article>
+    <div class="post-container">
+      
+      <div class="post-content">
+        <div class="title">
+          <h1 class="title">TOTP算法Java版本</h1>
+          <div class="meta">Posted on 2018年1月8日</div>
+        </div>
+        
+        <section class="body">
+          <h4 id="totp-概念">TOTP 概念</h4>
+<p>TOTP - Time-based One-time Password Algorithm is an extension of the HMAC-based One Time Password algorithm HOTP to support a time based moving factor.</p>
+<p>TOTP（基于时间的一次性密码算法）是支持时间作为动态因素基于HMAC一次性密码算法的扩展。它是OTP算法的一种</p>
+<p>算法如下:
+TOTP = Truncate(HMAC-SHA-1(K, (T - T0) / X))</p>
+<p>K 共享密钥
+T 时间
+T0 开始计数的时间步长
+X 时间步长</p>
+<h4 id="代码实现">代码实现</h4>
+<p>最简实现需要如下两个类
+1.Base32.java</p>
+<pre><code class="language-java">public class Base32 {
+
+	private static final char[] ALPHABET = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+			'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '2', '3', '4', '5', '6', '7' };
+
+	private static final byte[] DECODE_TABLE;
+
+	static {
+		DECODE_TABLE = new byte[128];
+
+		for (int i = 0; i &lt; DECODE_TABLE.length; i++) {
+			DECODE_TABLE[i] = (byte) 0xFF;
+		}
+		for (int i = 0; i &lt; ALPHABET.length; i++) {
+			DECODE_TABLE[(int) ALPHABET[i]] = (byte) i;
+			if (i &lt; 24) {
+				DECODE_TABLE[(int) Character.toLowerCase(ALPHABET[i])] = (byte) i;
+			}
+		}
+	}
+
+	public static String encode(byte[] data) {
+
+		char[] chars = new char[((data.length * 8) / 5) + ((data.length % 5) != 0 ? 1 : 0)];
+
+		for (int i = 0, j = 0, index = 0; i &lt; chars.length; i++) {
+			if (index &gt; 3) {
+				int b = data[j] &amp; (0xFF &gt;&gt; index);
+				index = (index + 5) % 8;
+				b &lt;&lt;= index;
+				if (j &lt; data.length - 1) {
+					b |= (data[j + 1] &amp; 0xFF) &gt;&gt; (8 - index);
+				}
+				chars[i] = ALPHABET[b];
+				j++;
+			} else {
+				chars[i] = ALPHABET[((data[j] &gt;&gt; (8 - (index + 5))) &amp; 0x1F)];
+				index = (index + 5) % 8;
+				if (index == 0) {
+					j++;
+				}
+			}
+		}
+
+		return new String(chars);
+	}
+
+	public static byte[] decode(String s) throws Exception {
+
+		char[] stringData = s.toCharArray();
+		byte[] data = new byte[(stringData.length * 5) / 8];
+
+		for (int i = 0, j = 0, index = 0; i &lt; stringData.length; i++) {
+			int val;
+
+			try {
+				val = DECODE_TABLE[stringData[i]];
+			} catch (ArrayIndexOutOfBoundsException e) {
+				throw new Exception(&quot;Illegal character&quot;);
+			}
+
+			if (val == 0xFF) {
+				throw new Exception(&quot;Illegal character&quot;);
+			}
+
+			if (index &lt;= 3) {
+				index = (index + 5) % 8;
+				if (index == 0) {
+					data[j++] |= val;
+				} else {
+					data[j] |= val &lt;&lt; (8 - index);
+				}
+			} else {
+				index = (index + 5) % 8;
+				data[j++] |= (val &gt;&gt; index);
+				if (j &lt; data.length) {
+					data[j] |= val &lt;&lt; (8 - index);
+				}
+			}
+		}
+
+		return data;
+	}
+}
+</code></pre>
+<p>2.GoogleAuthenticator.java</p>
+<pre><code class="language-java">import javax.crypto.spec.SecretKeySpec;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.util.Base64;
+
+import javax.crypto.Mac;
+
+public class GoogleAuthenticator {
+
+    // taken from Google pam docs - we probably don't need to mess with these
+    public static final int SECRET_SIZE = 10;
+
+    public static final String SEED = &quot;g8GjEvTbW5oVSV7avLBdwIHqGlUYNzKFI7izOF8GwLDVKs2m0QN7vxRs2im5MDaNCWGmcD2rvcZx&quot;;
+
+    public static final String RANDOM_NUMBER_ALGORITHM = &quot;SHA1PRNG&quot;;
+
+    int window_size = 3; // default 3 - max 17 (from google docs)最多可偏移的时间
+
+    /**
+     * set the windows size. This is an integer value representing the number of 30 second windows
+     * we allow
+     * The bigger the window, the more tolerant of clock skew we are.
+     * @param s window size - must be &gt;=1 and &lt;=17. Other values are ignored
+     */
+    public void setWindowSize(int s) {
+        if (s &gt;= 1 &amp;&amp; s &lt;= 17)
+            window_size = s;
+    }
+
+    /**
+     * Generate a random secret key. This must be saved by the server and associated with the
+     * users account to verify the code displayed by Google Authenticator.
+     * The user must register this secret on their device.
+     * @return secret key
+     */
+    public static String generateSecretKey() {
+        SecureRandom sr = null;
+        try {
+            sr = SecureRandom.getInstance(RANDOM_NUMBER_ALGORITHM);
+            sr.setSeed(Base64.getDecoder().decode(SEED));
+            byte[] buffer = sr.generateSeed(SECRET_SIZE);
+            Base32 codec = new Base32();
+            byte[] bEncodedKey = codec.encode(buffer).getBytes();
+            String encodedKey = new String(bEncodedKey);
+            return encodedKey;
+        }catch (NoSuchAlgorithmException e) {
+            // should never occur... configuration error
+        }
+        return null;
+    }
+
+    /**
+     * Return a URL that generates and displays a QR barcode. The user scans this bar code with the
+     * Google Authenticator application on their smartphone to register the auth code. They can also
+     * manually enter the
+     * secret if desired
+     * @param user user id (e.g. fflinstone)
+     * @param host host or system that the code is for (e.g. myapp.com)
+     * @param secret the secret that was previously generated for this user
+     * @return the URL for the QR code to scan
+     */
+    public static String getQRBarcodeURL(String user, String host, String secret) {
+        String format = &quot;https://www.google.com/chart?chs=200x200&amp;chld=M%%7C0&amp;cht=qr&amp;chl=otpauth://totp/%s@%s%%3Fsecret%%3D%s&quot;;
+        return String.format(format, user, host, secret);
+    }
+
+    /**
+     * Check the code entered by the user to see if it is valid
+     * @param secret The users secret.
+     * @param code The code displayed on the users device
+     * @param t The time in msec (System.currentTimeMillis() for example)
+     * @return
+     * @throws Exception
+     */
+    public boolean check_code(String secret, long code, long timeMsec) throws Exception {
+        Base32 codec = new Base32();
+        byte[] decodedKey = codec.decode(secret);
+        // convert unix msec time into a 30 second &quot;window&quot;
+        // this is per the TOTP spec (see the RFC for details)
+        long t = (timeMsec / 1000L) / 30L;
+        // Window is used to check codes generated in the near past.
+        // You can use this value to tune how far you're willing to go.
+        for (int i = -window_size; i &lt;= window_size; ++i) {
+            long hash;
+            try {
+                hash = verify_code(decodedKey, t + i);
+            }catch (Exception e) {
+                // Yes, this is bad form - but
+                // the exceptions thrown would be rare and a static configuration problem
+                e.printStackTrace();
+                throw new RuntimeException(e.getMessage());
+                //return false;
+            }
+            if (hash == code) {
+                return true;
+            }
+        }
+        // The validation code is invalid.
+        return false;
+    }
+
+    private static int verify_code(byte[] key, long t) throws NoSuchAlgorithmException, InvalidKeyException {
+        byte[] data = new byte[8];
+        long value = t;
+        for (int i = 8; i-- &gt; 0; value &gt;&gt;&gt;= 8) {
+            data[i] = (byte) value;
+        }
+        SecretKeySpec signKey = new SecretKeySpec(key, &quot;HmacSHA1&quot;);
+        Mac mac = Mac.getInstance(&quot;HmacSHA1&quot;);
+        mac.init(signKey);
+        byte[] hash = mac.doFinal(data);
+        int offset = hash[20 - 1] &amp; 0xF;
+        // We're using a long because Java hasn't got unsigned int.
+        long truncatedHash = 0;
+        for (int i = 0; i &lt; 4; ++i) {
+            truncatedHash &lt;&lt;= 8;
+            // We are dealing with signed bytes:
+            // we just keep the first byte.
+            truncatedHash |= (hash[offset + i] &amp; 0xFF);
+        }
+        truncatedHash &amp;= 0x7FFFFFFF;
+        truncatedHash %= 1000000;
+        return (int) truncatedHash;
+    }
+}
+</code></pre>
+<p>测试类如下:</p>
+<pre><code class="language-java">import org.junit.Test;
+
+public class GoogleAuthTest {
+
+    @Test
+    public void genSecretTest() {
+        String secret = GoogleAuthenticator.generateSecretKey();
+        System.out.println(&quot;secret=&quot;+secret);
+        String url = GoogleAuthenticator.getQRBarcodeURL(&quot;testuser&quot;, &quot;testhost&quot;, secret);
+        System.out.println(&quot;Please register &quot; + url);
+        System.out.println(&quot;Secret key is &quot; + secret);
+    }
+
+    // Change this to the saved secret from the running the above test.
+    static String savedSecret = &quot;VGH25A7M54QPME5F&quot;;
+
+    @Test
+    public void authTest() throws Exception {
+        // enter the code shown on device. Edit this and run it fast before the code expires!
+        long code = 146841;
+        long t = System.currentTimeMillis();
+        GoogleAuthenticator ga = new GoogleAuthenticator();
+        ga.setWindowSize(5); //should give 5 * 30 seconds of grace...
+        boolean r = ga.check_code(savedSecret, code, t);
+        System.out.println(&quot;Check code = &quot; + r);
+    }
+}
+</code></pre>
+<h4 id="otp-auth协议">OTP Auth协议</h4>
+<p>在实际使用中,通常把secret嵌入一段URL中并以二维码的形式发布,这个URL一般称为otpauth协议.其URL如下所示:
+otpauth://totp/testuser@testhost?secret=VGH25A7M54QPME5F&amp;algorithm=SHA1&amp;digits=6&amp;period=30</p>
+
+        </section>
+        <div class="post-tags">
+          
+          
+          <nav class="nav tags">
+            <ul class="tags">
+              
+              <li><a href="/tags/java">Java</a></li>
+              
+            </ul>
+          </nav>
+          
+          
+        </div>
+      </div>
+
+      
+      
+    </div>
+
+    </article>
+</main>
+<footer>
+  <div style="display:flex"></div>
+  <div class="footer-info">
+    2025  <a
+      href="https://github.com/athul/archie">Archie Theme</a> | Built with <a href="https://gohugo.io">Hugo</a>
+  </div>
+</footer>
+
+</div>
+    </body>
+</html>
