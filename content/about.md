@@ -6,14 +6,10 @@ weight: 60
 ---
 
 
-不使用微信/QQ/微博/知乎
+不使用微信/QQ/微博/知乎/抖音/小红书
 
-电报渠道：[https://t.me/notonlyshare](https://t.me/notonlyshare)
+session号码：05179ebbaf10d0aa93f7f6079d65e191daf6785021f7a978e27ba97112dec95c2d
 
+无其他联系方式
 ------
 
-GPG：
-
-KeyId：0xC2F337FBA26CB3F5
-
-Fingerprint：0334 1997 6B80 910E 4615  AEBA C2F3 37FB A26C B3F5
